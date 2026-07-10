@@ -1,1 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day 03 — Automation Fundamentals & n8n Architecture | n8n Engineering Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
 
+  <!-- Sidebar Navigation -->
+  <nav class="sidebar-nav">
+    <a href="#hero" class="nav-dot active" data-label="Intro"></a>
+    <a href="#section-01" class="nav-dot" data-label="What We Learn"></a>
+    <a href="#section-02" class="nav-dot" data-label="What n8n Is"></a>
+    <a href="#section-03" class="nav-dot" data-label="Data Model"></a>
+    <a href="#section-04" class="nav-dot" data-label="Node Taxonomy"></a>
+    <a href="#section-05" class="nav-dot" data-label="Execution"></a>
+    <a href="#section-06" class="nav-dot" data-label="Expressions"></a>
+    <a href="#section-07" class="nav-dot" data-label="Setup"></a>
+    <a href="#section-08" class="nav-dot" data-label="Project"></a>
+    <a href="#section-09" class="nav-dot" data-label="Quiz"></a>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero" id="hero">
+    <div class="badge">
+      <i class="fas fa-graduation-cap"></i>
+      Day 03 — Automation Fundamentals
+    </div>
+    <h1>Automation Engineering Mindset</h1>
+    <p class="hero-subtitle">
+      Not "connecting apps" — replacing entire human workflows with machine processes. 
+      Understanding the engine, the data model, and the execution algorithm from Day 1.
+    </p>
+    <div class="hero-stats">
+      <div class="stat-item"><i class="fas fa-cube"></i> <span>Execution Model</span></div>
+      <div class="stat-item"><i class="fas fa-database"></i> <span>JSON Items Array</span></div>
+      <div class="stat-item"><i class="fas fa-project-diagram"></i> <span>Node Taxonomy</span></div>
+      <div class="stat-item"><i class="fas fa-code"></i> <span>3-Node Pipeline</span></div>
+    </div>
+  </header>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number orange">7</div>
+      <div class="stat-label">Execution Steps</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number green">items[]</div>
+      <div class="stat-label">Always an Array</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number purple">6</div>
+      <div class="stat-label">Node Categories</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number pink">{{ }}</div>
+      <div class="stat-label">Expression Syntax</div>
+    </div>
+  </div>
+
+  <!-- Section 01: What We Will Learn -->
+  <section class="section" id="section-01">
+    <div class="section-label">Section 01</div>
+    <h2>What We Will Learn Today</h2>
+    <p>
+      By the end of today, you must be able to explain the n8n execution model at the engine level, 
+      describe the exact JSON structure that flows between every node, set up a running n8n instance, 
+      and build a 3-node workflow that triggers manually, fetches live API data, and transforms it.
+    </p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon orange"><i class="fas fa-brain"></i></div>
+        <h3>The Engineering Mindset</h3>
+        <p>Automation is not a tool — it is a paradigm shift. Every repetitive human task is a $30,000/year liability.</p>
+        <span class="card-tag orange">Mindset</span>
+      </div>
+      <div class="card">
+        <div class="card-icon green"><i class="fas fa-globe"></i></div>
+        <h3>Ecosystem Position</h3>
+        <p>Where n8n sits vs. Zapier, Make.com, and Temporal. Why self-hosting matters for enterprise.</p>
+        <span class="card-tag green">Ecosystem</span>
+      </div>
+      <div class="card">
+        <div class="card-icon purple"><i class="fas fa-cogs"></i></div>
+        <h3>Execution Model</h3>
+        <p>What happens algorithmically from trigger to completion. The engine-level sequence.</p>
+        <span class="card-tag purple">Algorithm</span>
+      </div>
+      <div class="card">
+        <div class="card-icon blue"><i class="fas fa-database"></i></div>
+        <h3>Data Architecture</h3>
+        <p>The JSON Items Array — the single most critical concept in this entire course.</p>
+        <span class="card-tag blue">Critical</span>
+      </div>
+      <div class="card">
+        <div class="card-icon pink"><i class="fas fa-desktop"></i></div>
+        <h3>UI Navigation</h3>
+        <p>Canvas, Executions Log, Credentials, Settings — know your battlefield.</p>
+        <span class="card-tag pink">Navigation</span>
+      </div>
+      <div class="card">
+        <div class="card-icon cyan"><i class="fas fa-rocket"></i></div>
+        <h3>First Pipeline</h3>
+        <p>Build a 3-node workflow: Manual Trigger → HTTP Request → Set Node. Live API data.</p>
+        <span class="card-tag cyan">Hands-On</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 02: What n8n Is -->
+  <section class="section" id="section-02">
+    <div class="section-label">Section 02</div>
+    <h2>What n8n Is — Technical Definition</h2>
+    <p>
+      n8n (pronounced "n-eight-n", short for "nodemation") is an open-source, event-driven workflow automation engine. 
+      It is the most powerful open-source platform in this space because it is self-hostable, Turing-complete, 
+      AI-native, and white-label ready.
+    </p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon green"><i class="fas fa-server"></i></div>
+        <h3>Self-Hostable</h3>
+        <p>Critical for healthcare, banking, legal, and government. Your data never leaves your servers.</p>
+        <span class="card-tag green">Enterprise</span>
+      </div>
+      <div class="card">
+        <div class="card-icon purple"><i class="fas fa-infinity"></i></div>
+        <h3>Turing-Complete</h3>
+        <p>Native JavaScript/Python execution means no ceiling on what you can build. Any logic, any transformation.</p>
+        <span class="card-tag purple">Unlimited</span>
+      </div>
+      <div class="card">
+        <div class="card-icon blue"><i class="fas fa-robot"></i></div>
+        <h3>AI-Native</h3>
+        <p>Built-in LangChain nodes, vector store integrations, and agent orchestration out of the box.</p>
+        <span class="card-tag blue">AI-Ready</span>
+      </div>
+      <div class="card">
+        <div class="card-icon orange"><i class="fas fa-tag"></i></div>
+        <h3>White-Label Ready</h3>
+        <p>You can sell n8n-powered products as your own agency's proprietary platform.</p>
+        <span class="card-tag orange">Agency</span>
+      </div>
+    </div>
+
+    <div class="alert alert-orange">
+      <h4><i class="fas fa-exclamation-triangle"></i> The Competitive Edge</h4>
+      <p>
+        <strong>The 90% (Button-Clickers):</strong> Follows tutorials, can't adapt, doesn't understand what data is in each node, 
+        can't debug errors, builds personal automations for $50.<br><br>
+        <strong>The 10% (You after this course):</strong> Designs from architectural first principles, knows the exact JSON structure 
+        at every pipeline stage, diagnoses errors in under 60 seconds, builds enterprise systems for $50,000+.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 03: Data Model -->
+  <section class="section" id="section-03">
+    <div class="section-label critical">Section 03 — The Most Important Concept</div>
+    <h2>The n8n Data Model — The JSON Items Array</h2>
+    <p>
+      Every single piece of data in n8n, at every stage, has this exact shape. Understanding this is non-negotiable. 
+      This is the foundational rule that separates those who understand n8n from those who merely use it.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>The Anatomy of Every Item in n8n</span>
+      </div>
+      <pre><code>[
+  {
+    <span class="code-property">"json"</span>: {
+      <span class="code-comment">// Your actual data lives here</span>
+      <span class="code-property">"yourField"</span>: <span class="code-string">"yourValue"</span>,
+      <span class="code-property">"anotherField"</span>: <span class="code-number">42</span>
+    },
+    <span class="code-property">"binary"</span>: {
+      <span class="code-comment">// Optional: files encoded as Base64</span>
+      <span class="code-property">"optionalFile"</span>: {
+        <span class="code-property">"data"</span>: <span class="code-string">"base64..."</span>,
+        <span class="code-property">"mimeType"</span>: <span class="code-string">"image/png"</span>
+      }
+    },
+    <span class="code-property">"pairedItem"</span>: {
+      <span class="code-comment">// Links this item back to its origin</span>
+      <span class="code-property">"item"</span>: <span class="code-number">0</span>,
+      <span class="code-property">"input"</span>: <span class="code-number">0</span>
+    }
+  }
+]</code></pre>
+    </div>
+
+    <div class="alert alert-green">
+      <h4><i class="fas fa-lightbulb"></i> Why an Array and Not a Single Object?</h4>
+      <p>
+        Because n8n is built for <strong>bulk processing</strong>. If your trigger fetches 500 emails, it produces 500 items. 
+        Every subsequent node automatically loops through all 500 — you write your transformation logic once and it runs on every item. 
+        This is called <strong>implicit looping at the engine level</strong>, and it is the single biggest productivity feature in n8n 
+        vs. hand-coded scripts.
+      </p>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon orange"><i class="fas fa-cube"></i></div>
+        <h3>items[]</h3>
+        <p>Every node receives an array. Even a single object is wrapped. This enables batch processing and mapping.</p>
+        <span class="card-tag orange">Array Wrapper</span>
+      </div>
+      <div class="card">
+        <div class="card-icon green"><i class="fas fa-file-code"></i></div>
+        <h3>json</h3>
+        <p>Your actual payload. All fields, nested objects, and arrays live inside this key. Accessed with {{ $json.fieldName }}.</p>
+        <span class="card-tag green">Data Payload</span>
+      </div>
+      <div class="card">
+        <div class="card-icon purple"><i class="fas fa-link"></i></div>
+        <h3>pairedItem</h3>
+        <p>Tracks lineage across nodes. Critical for error tracing and understanding which input produced which output.</p>
+        <span class="card-tag purple">Lineage Tracking</span>
+      </div>
+      <div class="card">
+        <div class="card-icon blue"><i class="fas fa-image"></i></div>
+        <h3>binary</h3>
+        <p>Optional key for file data (images, PDFs, CSVs). Stored as base64 with metadata like filename and mimeType.</p>
+        <span class="card-tag blue">File Data</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 04: Node Taxonomy -->
+  <section class="section" id="section-04">
+    <div class="section-label">Section 04</div>
+    <h2>The n8n Node Taxonomy</h2>
+    <p>
+      Every node in n8n falls into one of these categories. Knowing the taxonomy helps you choose the right tool 
+      for every stage of your pipeline.
+    </p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Node Category</th>
+            <th>Purpose</th>
+            <th>Examples</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Trigger</strong></td>
+            <td>Entry point — starts the workflow</td>
+            <td>Manual, Schedule (Cron), Webhook, App Events</td>
+          </tr>
+          <tr>
+            <td><strong>Action</strong></td>
+            <td>Performs work in an external system</td>
+            <td>HTTP Request, Gmail, Postgres, Slack</td>
+          </tr>
+          <tr>
+            <td><strong>Transform</strong></td>
+            <td>Reshapes or filters the items array</td>
+            <td>Set, Code, Edit Fields, Filter, Limit</td>
+          </tr>
+          <tr>
+            <td><strong>Logic/Flow</strong></td>
+            <td>Controls routing and branching</td>
+            <td>IF, Switch, Merge, Loop Over Items, Wait</td>
+          </tr>
+          <tr>
+            <td><strong>Sub-workflow</strong></td>
+            <td>Calls another workflow</td>
+            <td>Execute Workflow, Sub-workflow Trigger</td>
+          </tr>
+          <tr>
+            <td><strong>Utility</strong></td>
+            <td>Housekeeping operations</td>
+            <td>Aggregate, Sort, Summarize, Remove Duplicates</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 05: Execution Algorithm -->
+  <section class="section" id="section-05">
+    <div class="section-label">Section 05</div>
+    <h2>The Execution Algorithm — Step by Step</h2>
+    <p>
+      When a workflow runs, the n8n engine executes this precise sequence. Understanding this algorithm 
+      is what separates engineers from button-clickers.
+    </p>
+
+    <div class="flow-container">
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-number">1</div>
+          <div class="step-icon"><i class="fas fa-bolt"></i></div>
+          <div class="step-title">Trigger Event</div>
+          <div class="step-desc">Manual click, cron tick, incoming webhook, etc.</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">2</div>
+          <div class="step-icon"><i class="fas fa-database"></i></div>
+          <div class="step-title">Create Execution</div>
+          <div class="step-desc">Record in DB with unique ID</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">3</div>
+          <div class="step-icon"><i class="fas fa-sitemap"></i></div>
+          <div class="step-title">Resolve Order</div>
+          <div class="step-desc">Respects connections and branches</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">4</div>
+          <div class="step-icon"><i class="fas fa-play-circle"></i></div>
+          <div class="step-title">Execute Nodes</div>
+          <div class="step-desc">Receive → Evaluate → Execute → Output</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">5</div>
+          <div class="step-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="step-title">Mark Complete</div>
+          <div class="step-desc">SUCCESS or ERROR with log</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>The Execution Algorithm — Detailed</span>
+      </div>
+      <pre><code><span class="code-comment">// 1. TRIGGER EVENT fires (manual click, cron tick, incoming webhook, etc.)</span>
+<span class="code-comment">// 2. ENGINE creates an "Execution" record in the database with a unique ID</span>
+<span class="code-comment">// 3. ENGINE resolves the execution order (respects node connections and branches)</span>
+
+<span class="code-comment">// 4. For each node in order:</span>
+<span class="code-keyword">for</span> (node <span class="code-keyword">of</span> workflow.nodes) {
+  <span class="code-comment">// a. Receive the items array from the previous node&apos;s output</span>
+  <span class="code-keyword">const</span> inputItems = previousNode.output;
+
+  <span class="code-comment">// b. Evaluate all expressions ({{ $json.x }}, {{ $now }}, etc.) per item</span>
+  <span class="code-keyword">const</span> evaluatedItems = inputItems.map(item => evaluateExpressions(item));
+
+  <span class="code-comment">// c. Execute the node&apos;s core logic (API call, transformation, conditional, etc.)</span>
+  <span class="code-keyword">const</span> outputItems = node.execute(evaluatedItems);
+
+  <span class="code-comment">// d. Produce a new items array as output</span>
+  node.output = outputItems;
+
+  <span class="code-comment">// e. Store input + output in the execution log (for debugging)</span>
+  executionLog.store(node.id, inputItems, outputItems);
+}
+
+<span class="code-comment">// 5. On error → Error Workflow triggers (if configured)</span>
+<span class="code-comment">// 6. Execution record marked SUCCESS or ERROR with timestamp and duration</span>
+<span class="code-comment">// 7. Execution log pruned per your retention settings</span></code></pre>
+    </div>
+
+    <div class="alert alert-orange">
+      <h4><i class="fas fa-exclamation-triangle"></i> Critical Insight</h4>
+      <p>
+        <strong>Every arrow in n8n carries an array of JSON items — never a single value.</strong> 
+        This is the foundational rule. If you internalize nothing else from this course, internalize this.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 06: Expressions -->
+  <section class="section" id="section-06">
+    <div class="section-label">Section 06</div>
+    <h2>n8n Expressions — How to Access Data</h2>
+    <p>
+      n8n uses double curly braces {{ }} for dynamic values, evaluated at runtime inside a sandboxed JavaScript engine. 
+      Any standard JS string/array/object method is available.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Expression Reference</span>
+      </div>
+      <pre><code>{{ $json.fieldName }}              <span class="code-comment">// Current item&apos;s data</span>
+{{ $json.user.email }}             <span class="code-comment">// Nested field access</span>
+{{ $node["HTTP Request"].json.id }} <span class="code-comment">// Data from a specific named node</span>
+{{ $now.toISO() }}                 <span class="code-comment">// Current timestamp (ISO format)</span>
+{{ $itemIndex }}                   <span class="code-comment">// Index of current item (0, 1, 2...)</span>
+{{ $runIndex }}                    <span class="code-comment">// Which execution loop run we&apos;re on</span>
+{{ $json.title.toUpperCase() }}    <span class="code-comment">// JavaScript methods work inline</span></code></pre>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>$json</code></td>
+            <td>Object</td>
+            <td>The json payload of the current item</td>
+            <td><code>{{ $json.id }}</code></td>
+          </tr>
+          <tr>
+            <td><code>$input</code></td>
+            <td>Object</td>
+            <td>All items received by the current node</td>
+            <td><code>{{ $input.first().json.id }}</code></td>
+          </tr>
+          <tr>
+            <td><code>$items</code></td>
+            <td>Function</td>
+            <td>Get items from a specific previous node</td>
+            <td><code>{{ $items("Webhook").length }}</code></td>
+          </tr>
+          <tr>
+            <td><code>$now</code></td>
+            <td>Luxon DateTime</td>
+            <td>Current timestamp</td>
+            <td><code>{{ $now.toISO() }}</code></td>
+          </tr>
+          <tr>
+            <td><code>$today</code></td>
+            <td>Luxon DateTime</td>
+            <td>Start of today (00:00:00)</td>
+            <td><code>{{ $today.toISO() }}</code></td>
+          </tr>
+          <tr>
+            <td><code>$workflow</code></td>
+            <td>Object</td>
+            <td>Workflow metadata (id, name, active)</td>
+            <td><code>{{ $workflow.name }}</code></td>
+          </tr>
+          <tr>
+            <td><code>$execution</code></td>
+            <td>Object</td>
+            <td>Execution metadata (id, mode, startedAt)</td>
+            <td><code>{{ $execution.id }}</code></td>
+          </tr>
+          <tr>
+            <td><code>$env</code></td>
+            <td>Object</td>
+            <td>Environment variables</td>
+            <td><code>{{ $env.API_KEY }}</code></td>
+          </tr>
+          <tr>
+            <td><code>$node</code></td>
+            <td>Object</td>
+            <td>Access output from any previous node</td>
+            <td><code>{{ $node["Set"].json.email }}</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 07: Setup -->
+  <section class="section" id="section-07">
+    <div class="section-label">Section 07</div>
+    <h2>Setting Up Your First n8n Environment</h2>
+    <p>
+      Choose your deployment strategy based on your infrastructure, compliance requirements, and scale.
+    </p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon green"><i class="fab fa-docker"></i></div>
+        <h3>Docker (Recommended)</h3>
+        <p>Single container with SQLite. Perfect for development, small teams, and rapid prototyping.</p>
+        <div class="code-block" style="margin-top:16px">
+          <pre style="padding:16px"><code><span class="code-comment"># Quick start</span>
+docker run -it --rm \
+  --name n8n \
+  -p <span class="code-number">5678</span>:<span class="code-number">5678</span> \
+  -v ~/.n8n:/home/node/.n8n \
+  n8nio/n8n</code></pre>
+        </div>
+        <span class="card-tag green">Dev / Small Team</span>
+      </div>
+      <div class="card">
+        <div class="card-icon purple"><i class="fas fa-cloud"></i></div>
+        <h3>n8n Cloud</h3>
+        <p>Fully managed SaaS. Zero infrastructure overhead. Starts at $20/month. Good for teams without DevOps.</p>
+        <span class="card-tag purple">Managed SaaS</span>
+      </div>
+      <div class="card">
+        <div class="card-icon blue"><i class="fas fa-server"></i></div>
+        <h3>Self-Hosted (Production)</h3>
+        <p>Docker Compose with PostgreSQL + Redis. Reverse proxy (Nginx/Traefik). SSL. Backup strategy.</p>
+        <span class="card-tag blue">Enterprise</span>
+      </div>
+    </div>
+
+    <div class="alert alert-green">
+      <h4><i class="fas fa-lightbulb"></i> The Production Checklist</h4>
+      <p>
+        Before going live: Use PostgreSQL (not SQLite), enable Redis for queue mode, 
+        configure SMTP for notifications, set up volume backups, and use a reverse proxy with SSL.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 08: Project -->
+  <section class="section" id="section-08">
+    <div class="section-label">Section 08</div>
+    <h2>Project: Your First 3-Node Pipeline</h2>
+    <p>
+      Build a workflow that triggers manually, fetches live API data, and transforms it. 
+      This is your first hands-on proof that you understand the execution model.
+    </p>
+
+    <div class="flow-container">
+      <div class="flow-steps" style="justify-content: center; gap: 40px;">
+        <div class="flow-step" style="max-width: 200px;">
+          <div class="step-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--accent-orange);"><i class="fas fa-hand-pointer"></i></div>
+          <div class="step-title">Manual Trigger</div>
+          <div class="step-desc">Click "Execute Workflow"<br>to start the pipeline</div>
+        </div>
+        <div class="flow-step" style="max-width: 40px;">
+          <div style="font-size: 1.5rem; color: var(--accent-orange); margin-top: 20px;">→</div>
+        </div>
+        <div class="flow-step" style="max-width: 200px;">
+          <div class="step-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-green);"><i class="fas fa-globe"></i></div>
+          <div class="step-title">HTTP Request</div>
+          <div class="step-desc">GET https://api.github.com/users/n8n-io<br>Fetches live data</div>
+        </div>
+        <div class="flow-step" style="max-width: 40px;">
+          <div style="font-size: 1.5rem; color: var(--accent-orange); margin-top: 20px;">→</div>
+        </div>
+        <div class="flow-step" style="max-width: 200px;">
+          <div class="step-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue);"><i class="fas fa-code"></i></div>
+          <div class="step-title">Set Node</div>
+          <div class="step-desc">Transform and map fields<br>Output clean JSON</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Set Node Configuration — Map API Response to Clean Object</span>
+      </div>
+      <pre><code><span class="code-comment">// Input from HTTP Request node (GitHub API):</span>
+{
+  <span class="code-property">"login"</span>: <span class="code-string">"n8n-io"</span>,
+  <span class="code-property">"id"</span>: <span class="code-number">45412345</span>,
+  <span class="code-property">"avatar_url"</span>: <span class="code-string">"https://avatars.githubusercontent.com/u/45412345"</span>,
+  <span class="code-property">"html_url"</span>: <span class="code-string">"https://github.com/n8n-io"</span>,
+  <span class="code-property">"public_repos"</span>: <span class="code-number">42</span>,
+  <span class="code-property">"followers"</span>: <span class="code-number">8500</span>
+}
+
+<span class="code-comment">// Set Node — Values to Set:</span>
+{
+  <span class="code-property">"organization"</span>: <span class="code-string">"{{ $json.login }}"</span>,
+  <span class="code-property">"profileUrl"</span>: <span class="code-string">"{{ $json.html_url }}"</span>,
+  <span class="code-property">"repoCount"</span>: <span class="code-string">"{{ $json.public_repos }}"</span>,
+  <span class="code-property">"followerCount"</span>: <span class="code-string">"{{ $json.followers }}"</span>,
+  <span class="code-property">"fetchedAt"</span>: <span class="code-string">"{{ $now.toISO() }}"</span>
+}
+
+<span class="code-comment">// Output:</span>
+{
+  <span class="code-property">"organization"</span>: <span class="code-string">"n8n-io"</span>,
+  <span class="code-property">"profileUrl"</span>: <span class="code-string">"https://github.com/n8n-io"</span>,
+  <span class="code-property">"repoCount"</span>: <span class="code-number">42</span>,
+  <span class="code-property">"followerCount"</span>: <span class="code-number">8500</span>,
+  <span class="code-property">"fetchedAt"</span>: <span class="code-string">"2025-01-15T09:30:00.000Z"</span>
+}</code></pre>
+    </div>
+
+    <div class="alert alert-orange">
+      <h4><i class="fas fa-exclamation-triangle"></i> What to Check</h4>
+      <p>
+        After executing, click on each node and inspect the <strong>Input</strong> and <strong>Output</strong> panels. 
+        Verify that the HTTP Request node received an empty array as input and returned an array with one item. 
+        Verify that the Set node received that array and returned a transformed array. This is how you diagnose 
+        what is happening inside a node.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 09: Quiz -->
+  <section class="section quiz-section" id="section-09">
+    <div class="section-label">Section 09 — Quiz</div>
+    <h2>Test Your Understanding</h2>
+    <p>Three questions on the execution model, data structure, and expressions.</p>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        1. What is the exact shape of data that flows between every node in n8n?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">A single JSON object</div>
+        <div class="quiz-option" data-correct="true">An array of items, each with json, binary, and pairedItem keys</div>
+        <div class="quiz-option" data-correct="false">A plain string</div>
+        <div class="quiz-option" data-correct="false">A binary buffer</div>
+      </div>
+    </div>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        2. Why does n8n use an array of items instead of a single object?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">Because arrays are easier to debug</div>
+        <div class="quiz-option" data-correct="true">For bulk processing — implicit looping at the engine level</div>
+        <div class="quiz-option" data-correct="false">Because JSON requires arrays</div>
+        <div class="quiz-option" data-correct="false">For backward compatibility with older versions</div>
+      </div>
+    </div>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        3. Which expression accesses data from a specific previous node named "HTTP Request"?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">{{ $json["HTTP Request"].id }}</div>
+        <div class="quiz-option" data-correct="true">{{ $node["HTTP Request"].json.id }}</div>
+        <div class="quiz-option" data-correct="false">{{ $items("HTTP Request").json.id }}</div>
+        <div class="quiz-option" data-correct="false">{{ $input["HTTP Request"].json.id }}</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="../index.html"><i class="fas fa-arrow-left"></i> Back to Index</a></p>
+    <p style="margin-top: 12px;">
+      <a href="day-02.html"><i class="fas fa-arrow-left"></i> Day 02</a> · 
+      <span style="color: var(--text-muted);">Day 04 — Coming Tomorrow</span>
+    </p>
+  </footer>
+
+  <script src="../js/quiz.js"></script>
+</body>
+</html>
