@@ -1,1 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day 01 — n8n Architecture & Installation | n8n Engineering Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
 
+  <!-- Sidebar Navigation -->
+  <nav class="sidebar-nav">
+    <a href="#hero" class="nav-dot active" data-label="Intro"></a>
+    <a href="#section-01" class="nav-dot" data-label="What is n8n"></a>
+    <a href="#section-02" class="nav-dot" data-label="Architecture"></a>
+    <a href="#section-03" class="nav-dot" data-label="Installation"></a>
+    <a href="#section-04" class="nav-dot" data-label="First Workflow"></a>
+    <a href="#section-05" class="nav-dot" data-label="Quiz"></a>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero" id="hero">
+    <div class="badge">
+      <i class="fas fa-graduation-cap"></i>
+      Day 01 — Architecture & Installation
+    </div>
+    <h1>How n8n Actually Works</h1>
+    <p class="hero-subtitle">
+      Before you build a single workflow, you must understand the engine. 
+      This is what separates engineers from tutorial followers.
+    </p>
+    <div class="hero-stats">
+      <div class="stat-item"><i class="fas fa-cube"></i> <span>Core Concepts</span></div>
+      <div class="stat-item"><i class="fas fa-server"></i> <span>3 Install Methods</span></div>
+      <div class="stat-item"><i class="fas fa-project-diagram"></i> <span>Execution Model</span></div>
+      <div class="stat-item"><i class="fas fa-exclamation-triangle"></i> <span>1 Critical Rule</span></div>
+    </div>
+  </header>
+
+  <!-- Section 01: What is n8n -->
+  <section class="section" id="section-01">
+    <div class="section-label">Section 01</div>
+    <h2>What n8n Is — And What It Is Not</h2>
+    <p>
+      n8n is a workflow automation platform built on Node.js. Unlike Zapier or Make, 
+      it gives you full control over the execution engine, data flow, and infrastructure.
+    </p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon orange"><i class="fas fa-code"></i></div>
+        <h3>Fair-Code Licensed</h3>
+        <p>Source-available. You can self-host, modify, and audit every line of the execution engine.</p>
+        <span class="card-tag orange">Self-Hosted</span>
+      </div>
+      <div class="card">
+        <div class="card-icon green"><i class="fas fa-project-diagram"></i></div>
+        <h3>DAG Execution</h3>
+        <p>Workflows are Directed Acyclic Graphs. Nodes execute in topological order, not linearly.</p>
+        <span class="card-tag green">Directed Graph</span>
+      </div>
+      <div class="card">
+        <div class="card-icon purple"><i class="fas fa-plug"></i></div>
+        <h3>400+ Integrations</h3>
+        <p>Built-in nodes for HTTP, databases, messaging, CRM, and AI — but you can also write custom nodes.</p>
+        <span class="card-tag purple">Extensible</span>
+      </div>
+      <div class="card">
+        <div class="card-icon blue"><i class="fas fa-lock"></i></div>
+        <h3>Data Privacy First</h3>
+        <p>Your data never leaves your infrastructure. No third-party processing unless you explicitly configure it.</p>
+        <span class="card-tag blue">Privacy</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 02: Architecture -->
+  <section class="section" id="section-02">
+    <div class="section-label">Section 02</div>
+    <h2>n8n Architecture — The Engine</h2>
+    <p>
+      When you click "Execute Workflow", n8n performs a precise sequence of operations 
+      from parsing the JSON workflow definition to running the DAG traversal algorithm.
+    </p>
+
+    <div class="flow-container">
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-number">1</div>
+          <div class="step-icon"><i class="fas fa-file-code"></i></div>
+          <div class="step-title">Parse Workflow JSON</div>
+          <div class="step-desc">nodes, connections, settings</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">2</div>
+          <div class="step-icon"><i class="fas fa-sitemap"></i></div>
+          <div class="step-title">Build Execution DAG</div>
+          <div class="step-desc">topological sort</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">3</div>
+          <div class="step-icon"><i class="fas fa-database"></i></div>
+          <div class="step-title">Create Execution Record</div>
+          <div class="step-desc">status: running</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">4</div>
+          <div class="step-icon"><i class="fas fa-play"></i></div>
+          <div class="step-title">Traverse & Execute</div>
+          <div class="step-desc">node by node</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">5</div>
+          <div class="step-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="step-title">Store Result</div>
+          <div class="step-desc">execution log</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>workflow.json — The DNA of every automation</span>
+      </div>
+      <pre><code>{
+  <span class="code-property">"name"</span>: <span class="code-string">"My First Workflow"</span>,
+  <span class="code-property">"nodes"</span>: [
+    {
+      <span class="code-property">"id"</span>: <span class="code-string">"trigger-1"</span>,
+      <span class="code-property">"type"</span>: <span class="code-string">"n8n-nodes-base.webhook"</span>,
+      <span class="code-property">"parameters"</span>: {
+        <span class="code-property">"path"</span>: <span class="code-string">"order-api"</span>,
+        <span class="code-property">"responseMode"</span>: <span class="code-string">"responseNode"</span>
+      }
+    },
+    {
+      <span class="code-property">"id"</span>: <span class="code-string">"set-1"</span>,
+      <span class="code-property">"type"</span>: <span class="code-string">"n8n-nodes-base.set"</span>
+    }
+  ],
+  <span class="code-property">"connections"</span>: {
+    <span class="code-property">"trigger-1"</span>: {
+      <span class="code-property">"main"</span>: [[{ <span class="code-property">"node"</span>: <span class="code-string">"set-1"</span> }]]
+    }
+  }
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- Section 03: Installation -->
+  <section class="section" id="section-03">
+    <div class="section-label">Section 03</div>
+    <h2>Installation — Three Ways</h2>
+    <p>
+      Choose your deployment strategy based on your infrastructure, compliance requirements, and scale.
+    </p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon green"><i class="fab fa-docker"></i></div>
+        <h3>Docker (Recommended)</h3>
+        <p>Single container with SQLite. Perfect for development, small teams, and rapid prototyping.</p>
+        <div class="code-block" style="margin-top:16px">
+          <pre style="padding:16px"><code><span class="code-comment"># Quick start</span>
+docker run -it --rm \
+  --name n8n \
+  -p <span class="code-number">5678</span>:<span class="code-number">5678</span> \
+  -v ~/.n8n:/home/node/.n8n \
+  n8nio/n8n</code></pre>
+        </div>
+        <span class="card-tag green">Dev / Small Team</span>
+      </div>
+      <div class="card">
+        <div class="card-icon purple"><i class="fas fa-cloud"></i></div>
+        <h3>n8n Cloud</h3>
+        <p>Fully managed SaaS. Zero infrastructure overhead. Starts at $20/month. Good for teams without DevOps.</p>
+        <span class="card-tag purple">Managed SaaS</span>
+      </div>
+      <div class="card">
+        <div class="card-icon blue"><i class="fas fa-server"></i></div>
+        <h3>Self-Hosted (Production)</h3>
+        <p>Docker Compose with PostgreSQL + Redis. Reverse proxy (Nginx/Traefik). SSL. Backup strategy.</p>
+        <span class="card-tag blue">Enterprise</span>
+      </div>
+    </div>
+
+    <div class="alert alert-green">
+      <h4><i class="fas fa-lightbulb"></i> The Production Checklist</h4>
+      <p>
+        Before going live: Use PostgreSQL (not SQLite), enable Redis for queue mode, 
+        configure SMTP for notifications, set up volume backups, and use a reverse proxy with SSL.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 04: First Workflow -->
+  <section class="section" id="section-04">
+    <div class="section-label">Section 04</div>
+    <h2>Your First Workflow — The Anatomy</h2>
+    <p>
+      Every workflow has exactly one trigger and one or more action nodes. 
+      Understanding the data structure that flows between them is critical.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Data Structure — What flows between nodes</span>
+      </div>
+      <pre><code><span class="code-comment">// n8n data is always an array of items</span>
+[
+  {
+    <span class="code-property">"json"</span>: {
+      <span class="code-property">"id"</span>: <span class="code-number">1</span>,
+      <span class="code-property">"name"</span>: <span class="code-string">"Ahmed"</span>,
+      <span class="code-property">"email"</span>: <span class="code-string">"ahmed@example.com"</span>
+    },
+    <span class="code-property">"pairedItem"</span>: { <span class="code-property">"item"</span>: <span class="code-number">0</span> }
+  }
+]</code></pre>
+    </div>
+
+    <div class="alert alert-orange">
+      <h4><i class="fas fa-exclamation-triangle"></i> Critical Rule #1</h4>
+      <p>
+        <strong>Every node receives an array and returns an array.</strong> 
+        Even if your data is a single object, n8n wraps it in <code>items[]</code>. 
+        This is why expressions like <code>{{ $json.name }}</code> work — 
+        n8n automatically maps over the array for you.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 05: Quiz -->
+  <section class="section quiz-section" id="section-05">
+    <div class="section-label">Section 05 — Quiz</div>
+    <h2>Test Your Understanding</h2>
+    <p>Three quick questions to verify you understood the core architecture.</p>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        1. What data structure does every node in n8n receive and return?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">A single JSON object</div>
+        <div class="quiz-option" data-correct="true">An array of items</div>
+        <div class="quiz-option" data-correct="false">A string</div>
+        <div class="quiz-option" data-correct="false">A binary buffer</div>
+      </div>
+    </div>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        2. Which license model does n8n use?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">Fully proprietary (closed source)</div>
+        <div class="quiz-option" data-correct="false">MIT (fully open source)</div>
+        <div class="quiz-option" data-correct="true">Fair-code (source-available)</div>
+        <div class="quiz-option" data-correct="false">Apache 2.0</div>
+      </div>
+    </div>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        3. For production with 10+ users, which database should you use?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">SQLite (default)</div>
+        <div class="quiz-option" data-correct="true">PostgreSQL</div>
+        <div class="quiz-option" data-correct="false">MongoDB</div>
+        <div class="quiz-option" data-correct="false">In-memory only</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="../index.html"><i class="fas fa-arrow-left"></i> Back to Index</a></p>
+    <p style="margin-top: 12px;">
+      <a href="day-02.html">Day 02 — Triggers Deep Dive <i class="fas fa-arrow-right"></i></a>
+    </p>
+  </footer>
+
+  <script src="../js/quiz.js"></script>
+</body>
+</html>

@@ -1,1 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day 02 — Triggers Deep Dive | n8n Engineering Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
 
+  <!-- Sidebar Navigation -->
+  <nav class="sidebar-nav">
+    <a href="#hero" class="nav-dot active" data-label="Intro"></a>
+    <a href="#section-01" class="nav-dot" data-label="Trigger Types"></a>
+    <a href="#section-02" class="nav-dot" data-label="Webhook Arch"></a>
+    <a href="#section-03" class="nav-dot" data-label="Common Mistake"></a>
+    <a href="#section-04" class="nav-dot" data-label="Test vs Prod"></a>
+    <a href="#section-05" class="nav-dot" data-label="Response Modes"></a>
+    <a href="#section-06" class="nav-dot" data-label="Cron Syntax"></a>
+    <a href="#section-07" class="nav-dot" data-label="Push vs Poll"></a>
+    <a href="#section-08" class="nav-dot" data-label="Project"></a>
+    <a href="#section-09" class="nav-dot" data-label="Quiz"></a>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero" id="hero">
+    <div class="badge">
+      <i class="fas fa-bolt"></i>
+      Day 02 — Triggers Deep Dive
+    </div>
+    <h1>Webhooks, Cron Scheduling & App Events</h1>
+    <p class="hero-subtitle">
+      An interactive visual reference covering n8n trigger architecture at the engine level — 
+      from route registration to data structures and response patterns
+    </p>
+    <div class="hero-stats">
+      <div class="stat-item"><i class="fas fa-layer-group"></i> <span>4 Trigger Types</span></div>
+      <div class="stat-item"><i class="fas fa-reply"></i> <span>3 Response Modes</span></div>
+      <div class="stat-item"><i class="fas fa-clock"></i> <span>8 Cron Expressions</span></div>
+      <div class="stat-item"><i class="fas fa-exclamation-triangle"></i> <span>1 Fatal Mistake</span></div>
+    </div>
+  </header>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number orange">4</div>
+      <div class="stat-label">Core Trigger Types</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number green">200ms</div>
+      <div class="stat-label">Webhook Response Time</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number purple">5</div>
+      <div class="stat-label">Cron Expression Fields</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number pink">2</div>
+      <div class="stat-label">Architectures: Push & Polling</div>
+    </div>
+  </div>
+
+  <!-- Section 01: Four Core Trigger Types -->
+  <section class="section" id="section-01">
+    <div class="section-label">Section 01</div>
+    <h2>The Four Core Trigger Types</h2>
+    <p>
+      Every automation in n8n starts with exactly one trigger. Understanding the architectural differences 
+      between these four types is what separates engineers from tutorial assemblers.
+    </p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon orange"><i class="fas fa-plug"></i></div>
+        <h3>Webhook Trigger</h3>
+        <p>Turns n8n into a full API server. Registers an HTTP route in Express.js and receives external requests in real time.</p>
+        <span class="card-tag orange">Most Commercially Valuable</span>
+      </div>
+      <div class="card">
+        <div class="card-icon green"><i class="fas fa-clock"></i></div>
+        <h3>Schedule / Cron Trigger</h3>
+        <p>Uses Cron expressions to execute workflows on a schedule. Re-registers itself after every n8n restart.</p>
+        <span class="card-tag green">Cron Expressions</span>
+      </div>
+      <div class="card">
+        <div class="card-icon purple"><i class="fas fa-bell"></i></div>
+        <h3>App Event Trigger</h3>
+        <p>Listens for external app events via Push (internal webhook) or Polling (periodic polling with deduplication).</p>
+        <span class="card-tag purple">Push / Polling</span>
+      </div>
+      <div class="card">
+        <div class="card-icon blue"><i class="fas fa-hand-pointer"></i></div>
+        <h3>Manual Trigger</h3>
+        <p>For development and testing only. Does not work in production. Click "Execute Workflow" to run it from the editor.</p>
+        <span class="card-tag gray">Development Only</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 02: Webhook Architecture -->
+  <section class="section" id="section-02">
+    <div class="section-label">Section 02</div>
+    <h2>Webhook Architecture — Inside the Engine</h2>
+    <p>
+      When you activate a webhook workflow, n8n executes a precise sequence — from writing to the database 
+      to registering the route in Express.js.
+    </p>
+
+    <div class="flow-container">
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-number">1</div>
+          <div class="step-icon"><i class="fas fa-database"></i></div>
+          <div class="step-title">Write Record to DB</div>
+          <div class="step-desc">{path, method, workflowId}</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">2</div>
+          <div class="step-icon"><i class="fas fa-route"></i></div>
+          <div class="step-title">Register Express Route</div>
+          <div class="step-desc">app.post('/webhook/...')</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">3</div>
+          <div class="step-icon"><i class="fas fa-code-branch"></i></div>
+          <div class="step-title">Two Separate Routes</div>
+          <div class="step-desc">/webhook-test/ & /webhook/</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">4</div>
+          <div class="step-icon"><i class="fas fa-satellite-dish"></i></div>
+          <div class="step-title">Incoming Request</div>
+          <div class="step-desc">Express Router → Match</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">5</div>
+          <div class="step-icon"><i class="fas fa-play-circle"></i></div>
+          <div class="step-title">Execute Workflow</div>
+          <div class="step-desc">Execution Record + DAG</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Webhook Execution Flow</span>
+      </div>
+      <pre><code><span class="code-comment">// When a POST request arrives:</span>
+Incoming POST → <span class="code-keyword">Express router matches path</span> →
+Look up <span class="code-variable">workflowId</span> in database →
+Create <span class="code-keyword">Execution Record</span> →
+Map full request into <span class="code-variable">items[0].json</span> →
+Begin <span class="code-keyword">DAG traversal</span>
+
+<span class="code-comment">// If two workflows register the same path → conflict error on activation</span>
+<span class="code-comment">// Paths must be globally unique per method per instance</span></code></pre>
+    </div>
+  </section>
+
+  <!-- Section 03: Most Common Mistake -->
+  <section class="section" id="section-03">
+    <div class="section-label critical">Section 03 — Critical</div>
+    <h2>The Most Common Mistake in n8n</h2>
+    <p>This single mistake kills more workflows than anything else. Read it three times.</p>
+
+    <div class="alert alert-red">
+      <h4><i class="fas fa-skull-crossbones"></i> It's $json.body — not $json directly</h4>
+      <p>
+        In every other node, <code>$json</code> holds your data fields directly. But the Webhook node wraps 
+        the <em>entire</em> HTTP request — your actual data is one level deeper, inside <code>$json.body</code>.
+      </p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Webhook Node Output Structure</span>
+      </div>
+      <pre><code>[
+  {
+    <span class="code-property">"json"</span>: {
+      <span class="code-property">"headers"</span>: { <span class="code-string">"content-type"</span>, <span class="code-string">"authorization"</span>, <span class="code-string">"x-api-key"</span> },
+      <span class="code-property">"params"</span>: {},
+      <span class="code-property">"query"</span>: { <span class="code-property">"source"</span>: <span class="code-string">"mobile-app"</span> },
+      <span class="code-property">"body"</span>: {
+        <span class="code-highlight">"order_id": "ORD-992",</span>
+        <span class="code-highlight">"customer_name": "Ahmed",</span>
+        <span class="code-highlight">"total_amount": 499.99</span>
+      }, <span class="code-comment">← YOUR DATA IS HERE</span>
+      <span class="code-property">"webhookUrl"</span>: <span class="code-string">"https://.../webhook/order-api"</span>,
+      <span class="code-property">"executionMode"</span>: <span class="code-string">"production"</span>
+    }
+  }
+]</code></pre>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>What You Want</th>
+            <th style="color: var(--accent-red);">Wrong — Returns Undefined</th>
+            <th style="color: var(--accent-green);">Correct Expression</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Body: order_id</strong></td>
+            <td><code style="color: var(--accent-red); text-decoration: line-through;">{{ $json.order_id }}</code></td>
+            <td><code style="color: var(--accent-green);">{{ $json.body.order_id }}</code></td>
+          </tr>
+          <tr>
+            <td><strong>Body: customer_name</strong></td>
+            <td><code style="color: var(--accent-red); text-decoration: line-through;">{{ $json.customer_name }}</code></td>
+            <td><code style="color: var(--accent-green);">{{ $json.body.customer_name }}</code></td>
+          </tr>
+          <tr>
+            <td><strong>Header: x-api-key</strong></td>
+            <td><code style="color: var(--accent-red); text-decoration: line-through;">{{ $json['x-api-key'] }}</code></td>
+            <td><code style="color: var(--accent-green);">{{ $json.headers['x-api-key'] }}</code></td>
+          </tr>
+          <tr>
+            <td><strong>Header: Authorization</strong></td>
+            <td><code style="color: var(--accent-red); text-decoration: line-through;">{{ $json.authorization }}</code></td>
+            <td><code style="color: var(--accent-green);">{{ $json.headers.authorization }}</code></td>
+          </tr>
+          <tr>
+            <td><strong>Query: source</strong></td>
+            <td><code style="color: var(--accent-red); text-decoration: line-through;">{{ $json.source }}</code></td>
+            <td><code style="color: var(--accent-green);">{{ $json.query.source }}</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 04: Test vs Production URL -->
+  <section class="section" id="section-04">
+    <div class="section-label">Section 04</div>
+    <h2>Test URL vs Production URL</h2>
+    <p>
+      A critical operational distinction — sending data to the wrong URL causes random silent failures in production.
+    </p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th style="color: var(--accent-red);"><i class="fas fa-exclamation-triangle"></i> Test URL</th>
+            <th style="color: var(--accent-green);"><i class="fas fa-rocket"></i> Production URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Format</strong></td>
+            <td><code>.../webhook-test/{path}</code></td>
+            <td><code>.../webhook/{path}</code></td>
+          </tr>
+          <tr>
+            <td><strong>Active When</strong></td>
+            <td>Editor is open AND "Listen for Test Event" was clicked</td>
+            <td>Workflow toggle is ON (active)</td>
+          </tr>
+          <tr>
+            <td><strong>Execution Storage</strong></td>
+            <td>Execution log in editor only</td>
+            <td>Per your retention settings</td>
+          </tr>
+          <tr>
+            <td><strong>Use Case</strong></td>
+            <td>Development only</td>
+            <td>Production — always</td>
+          </tr>
+          <tr>
+            <td><strong>Danger of Misuse</strong></td>
+            <td style="color: var(--accent-red);">Partner sends to Test URL → fires only if editor is open → random silent failures</td>
+            <td style="color: var(--accent-red);">Using during dev → creates real executions → may trigger real side effects</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-green">
+      <h4><i class="fas fa-shield-alt"></i> The Production Rule</h4>
+      <p>
+        Once you hand a webhook URL to an external system, it must <em>always</em> be the Production URL. 
+        The workflow must be toggled Active. This is non-negotiable.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 05: Three Response Modes -->
+  <section class="section" id="section-05">
+    <div class="section-label">Section 05</div>
+    <h2>Three Webhook Response Modes</h2>
+    <p>
+      Each mode fundamentally changes how the caller interacts with n8n. Picking the wrong mode breaks the integration.
+    </p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); color: var(--accent-green); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">1</div>
+          <div>
+            <h3 style="margin: 0;">Immediately</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">fire-and-forget</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+          <span class="card-tag green" style="text-align: center;">POST → n8n → 200 OK instantly</span>
+          <span class="card-tag green" style="text-align: center;">Workflow runs in background</span>
+        </div>
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 16px 0;">
+        <p style="font-size: 0.9rem;"><strong>When to use:</strong> The caller doesn't need a result. Log pipelines, analytics events, audit trails.</p>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">2</div>
+          <div>
+            <h3 style="margin: 0;">When Last Node Finishes</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">synchronous</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+          <span class="card-tag blue" style="text-align: center;">POST → n8n → Runs all nodes</span>
+          <span class="card-tag blue" style="text-align: center;">Returns last node output</span>
+        </div>
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 16px 0;">
+        <p style="font-size: 0.9rem;"><strong>When to use:</strong> The caller needs the processed result back. Synchronous API patterns.</p>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(245, 158, 11, 0.2); color: var(--accent-orange); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">3</div>
+          <div>
+            <h3 style="margin: 0;">Respond to Webhook Node</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">professional pattern</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+          <span class="card-tag orange" style="text-align: center;">POST → n8n → Some nodes execute</span>
+          <span class="card-tag orange" style="text-align: center;">Custom response → rest in background</span>
+        </div>
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 16px 0;">
+        <p style="font-size: 0.9rem;"><strong>When to use:</strong> You need a custom JSON response AND want it sent before heavy processing completes. <strong>The professional pattern for building APIs in n8n.</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 06: Cron Syntax -->
+  <section class="section" id="section-06">
+    <div class="section-label">Section 06</div>
+    <h2>Cron Expression Syntax — The 5 Fields</h2>
+    <p>A Cron expression has exactly 5 fields. Each controls a different time dimension. Memorize these expressions.</p>
+
+    <div class="flow-container">
+      <div class="cron-fields">
+        <div class="cron-field">
+          <div class="field-box orange">*</div>
+          <div class="field-label">Minute</div>
+          <div class="field-range">0 – 59</div>
+        </div>
+        <div class="cron-field">
+          <div class="field-box green">*</div>
+          <div class="field-label">Hour</div>
+          <div class="field-range">0 – 23</div>
+        </div>
+        <div class="cron-field">
+          <div class="field-box blue">*</div>
+          <div class="field-label">Day of Month</div>
+          <div class="field-range">1 – 31</div>
+        </div>
+        <div class="cron-field">
+          <div class="field-box purple">*</div>
+          <div class="field-label">Month</div>
+          <div class="field-range">1 – 12</div>
+        </div>
+        <div class="cron-field">
+          <div class="field-box pink">*</div>
+          <div class="field-label">Day of Week</div>
+          <div class="field-range">0 – 7 (0/7=Sun)</div>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 24px; color: var(--text-muted); font-size: 0.9rem;">
+        <code>*</code> = every value &nbsp;&nbsp; <code>*/n</code> = every n units &nbsp;&nbsp; <code>n-m</code> = range &nbsp;&nbsp; <code>n,m</code> = specific values
+      </div>
+    </div>
+
+    <div class="cron-examples">
+      <div class="cron-example"><code>0 8 * * *</code> <span>Every day at 8:00 AM</span></div>
+      <div class="cron-example"><code>0 8 * * 1-5</code> <span>Weekdays (Mon-Fri) at 8:00 AM</span></div>
+      <div class="cron-example"><code>*/15 * * * *</code> <span>Every 15 minutes</span></div>
+      <div class="cron-example"><code>0 0 * * 0</code> <span>Every Sunday at midnight</span></div>
+      <div class="cron-example"><code>0 6 1 * *</code> <span>1st of every month at 6:00 AM</span></div>
+      <div class="cron-example"><code>0 */6 * * *</code> <span>Every 6 hours</span></div>
+      <div class="cron-example"><code>0 9,18 * * *</code> <span>Twice daily: 9 AM and 6 PM</span></div>
+      <div class="cron-example"><code>59 23 * * 0</code> <span>Every Sunday at 23:59</span></div>
+    </div>
+
+    <div class="alert alert-orange" style="margin-top: 24px;">
+      <h4><i class="fas fa-info-circle"></i> What happens on n8n restart?</h4>
+      <p>
+        The scheduler re-reads all active workflows and re-registers all cron jobs. If a job was scheduled for 08:00 
+        and n8n restarts at 07:59 — the 08:00 execution fires normally. But <strong style="color: var(--accent-red);">past-due executions are NOT backfilled</strong> — 
+        if n8n was down from 07:00 to 09:00, the 08:00 job is silently skipped.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 07: Push vs Polling -->
+  <section class="section" id="section-07">
+    <div class="section-label">Section 07</div>
+    <h2>Push vs Polling — Two Different Architectures</h2>
+    <p>
+      App Event triggers use one of these two architectures. Understanding the difference determines your integration choice.
+    </p>
+
+    <div class="compare-grid">
+      <div class="compare-card push">
+        <h3><i class="fas fa-bolt"></i> Push Architecture</h3>
+        <p style="font-size: 0.95rem; margin-bottom: 20px;">
+          The external service detects an event and sends an instant POST to your n8n webhook URL. n8n does nothing proactively.
+        </p>
+        <ul class="compare-list">
+          <li><i class="fas fa-server"></i> External service detects event</li>
+          <li><i class="fas fa-arrow-down"></i> Instant POST to n8n webhook URL</li>
+          <li><i class="fas fa-check-circle"></i> Instant response — zero latency</li>
+        </ul>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Services using this pattern:</div>
+        <div class="service-tags">
+          <span class="service-tag green">Stripe</span>
+          <span class="service-tag green">GitHub</span>
+          <span class="service-tag green">WhatsApp</span>
+          <span class="service-tag green">Slack</span>
+        </div>
+      </div>
+
+      <div class="compare-card polling">
+        <h3><i class="fas fa-sync-alt"></i> Polling Architecture</h3>
+        <p style="font-size: 0.95rem; margin-bottom: 20px;">
+          n8n sends periodic requests to the external service, compares the response against a stored cursor, and passes only new items forward.
+        </p>
+        <ul class="compare-list">
+          <li><i class="fas fa-search"></i> n8n sends periodic GET with lastCursor</li>
+          <li><i class="fas fa-filter"></i> Filter: only items with ID > lastCursor</li>
+          <li><i class="fas fa-save"></i> Update cursor → store new lastCursor</li>
+          <li><i class="fas fa-arrow-down"></i> Pass only new items to workflow</li>
+        </ul>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Services using this pattern:</div>
+        <div class="service-tags">
+          <span class="service-tag blue">Gmail (some modes)</span>
+          <span class="service-tag blue">Legacy services</span>
+        </div>
+        <div style="margin-top: 16px; font-size: 0.85rem; color: var(--text-secondary); padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+          <strong>Deduplication:</strong> n8n stores the highest event ID or timestamp seen and only processes records newer than that value — preventing the same event from being processed twice.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 08: Project -->
+  <section class="section" id="section-08">
+    <div class="section-label">Section 08</div>
+    <h2>Project: Webhook Order API</h2>
+    <p>
+      The full production flow — accepts a POST request, extracts fields, and returns a custom JSON response using the Respond to Webhook node.
+    </p>
+
+    <div class="flow-container">
+      <div class="flow-steps" style="justify-content: center; gap: 40px;">
+        <div class="flow-step" style="max-width: 200px;">
+          <div class="step-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--accent-orange);"><i class="fas fa-plug"></i></div>
+          <div class="step-title">Webhook Trigger</div>
+          <div class="step-desc">POST /order-api<br>Response Mode:<br>Respond to Webhook</div>
+        </div>
+        <div class="flow-step" style="max-width: 40px;">
+          <div style="font-size: 1.5rem; color: var(--accent-orange); margin-top: 20px;">→</div>
+        </div>
+        <div class="flow-step" style="max-width: 200px;">
+          <div class="step-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-green);"><i class="fas fa-code"></i></div>
+          <div class="step-title">Set Node</div>
+          <div class="step-desc">$json.body.order_id<br>$json.body.customer_name<br>$json.body.total_amount<br>$now.toISO()</div>
+        </div>
+        <div class="flow-step" style="max-width: 40px;">
+          <div style="font-size: 1.5rem; color: var(--accent-orange); margin-top: 20px;">→</div>
+        </div>
+        <div class="flow-step" style="max-width: 200px;">
+          <div class="step-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue);"><i class="fas fa-reply"></i></div>
+          <div class="step-title">Respond to Webhook</div>
+          <div class="step-desc">{ status: "received",<br>order_id: "...",<br>processed_at: "..." }</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Test with curl</span>
+      </div>
+      <pre><code><span class="code-comment"># Test with curl:</span>
+curl -X POST https://YOUR-INSTANCE/webhook/order-api \
+  -H <span class="code-string">"Content-Type: application/json"</span> \
+  -d <span class="code-string">'{"order_id": "ORD-001", "customer_name": "Ahmed", "total_amount": 299.99}'</span>
+
+<span class="code-comment"># Response within milliseconds:</span>
+{ <span class="code-property">"status"</span>: <span class="code-string">"received"</span>, <span class="code-property">"order_id"</span>: <span class="code-string">"ORD-001"</span>, <span class="code-property">"processed_at"</span>: <span class="code-string">"2025-01-02T..."</span>, <span class="code-property">"message"</span>: <span class="code-string">"Order queued for processing"</span> }</code></pre>
+    </div>
+  </section>
+
+  <!-- Section 09: Quiz -->
+  <section class="section quiz-section" id="section-09">
+    <div class="section-label">Section 09 — Quiz</div>
+    <h2>Test Your Understanding</h2>
+    <p>Three quick questions testing deep comprehension of the core concepts from this lecture.</p>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        1. A POST request arrives with body <code>{"order_id": "ORD-992"}</code>. What's the correct expression to access order_id?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">{{ $json.order_id }}</div>
+        <div class="quiz-option" data-correct="true">{{ $json.body.order_id }}</div>
+        <div class="quiz-option" data-correct="false">{{ $json.data.order_id }}</div>
+        <div class="quiz-option" data-correct="false">{{ $json.payload.order_id }}</div>
+      </div>
+    </div>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        2. Which Cron expression runs the workflow every Sunday at 23:59?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">0 23 * * 0</div>
+        <div class="quiz-option" data-correct="false">59 0 * * 7</div>
+        <div class="quiz-option" data-correct="true">59 23 * * 0</div>
+        <div class="quiz-option" data-correct="false">0 23 7 * *</div>
+      </div>
+    </div>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        3. A partner sends payment data to your webhook. Sometimes it arrives, sometimes it doesn't. What's the most likely cause?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="true">Partner is using the Test URL instead of Production URL</div>
+        <div class="quiz-option" data-correct="false">Content-Type is not JSON</div>
+        <div class="quiz-option" data-correct="false">Workflow doesn't have a Respond to Webhook node</div>
+        <div class="quiz-option" data-correct="false">Cron expression is wrong</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="../index.html"><i class="fas fa-arrow-left"></i> Back to Index</a></p>
+    <p style="margin-top: 12px;">
+      <a href="day-01.html"><i class="fas fa-arrow-left"></i> Day 01</a> · 
+      <span style="color: var(--text-muted);">Day 03 — Coming Tomorrow</span>
+    </p>
+  </footer>
+
+  <script src="../js/quiz.js"></script>
+</body>
+</html>
