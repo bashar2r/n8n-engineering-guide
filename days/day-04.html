@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day 04 — Data Manipulation & Transformation | n8n Engineering Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <nav class="sidebar-nav">
+    <a href="#hero" class="nav-dot active" data-label="Intro"></a>
+    <a href="#section-01" class="nav-dot" data-label="Expression Engine"></a>
+    <a href="#section-02" class="nav-dot" data-label="Set Node"></a>
+    <a href="#section-03" class="nav-dot" data-label="Code Node"></a>
+    <a href="#section-04" class="nav-dot" data-label="Filter Node"></a>
+    <a href="#section-05" class="nav-dot" data-label="IF Node"></a>
+    <a href="#section-06" class="nav-dot" data-label="Variable Reference"></a>
+    <a href="#section-07" class="nav-dot" data-label="Defensive Coding"></a>
+    <a href="#section-08" class="nav-dot" data-label="Project"></a>
+    <a href="#section-09" class="nav-dot" data-label="Quiz"></a>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero" id="hero">
+    <div class="badge">
+      <i class="fas fa-code"></i>
+      Day 04 — Data Manipulation & Transformation
+    </div>
+    <h1>The Expression Engine & Data Shaping</h1>
+    <p class="hero-subtitle">
+      If triggers are the entry point, then data manipulation nodes are the engine. 
+      Master Set, Code, Filter, and IF — the four tools that shape raw data into actionable information.
+    </p>
+    <div class="hero-stats">
+      <div class="stat-item"><i class="fas fa-cogs"></i> <span>Expression Engine</span></div>
+      <div class="stat-item"><i class="fas fa-code"></i> <span>2 Code Modes</span></div>
+      <div class="stat-item"><i class="fas fa-filter"></i> <span>Filter vs IF</span></div>
+      <div class="stat-item"><i class="fas fa-shield-alt"></i> <span>Defensive Coding</span></div>
+    </div>
+  </header>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number orange">{{ }}</div>
+      <div class="stat-label">Expression Syntax</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number green">2</div>
+      <div class="stat-label">Code Execution Modes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number purple">4</div>
+      <div class="stat-label">Core Nodes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number pink">∞</div>
+      <div class="stat-label">No Ceiling</div>
+    </div>
+  </div>
+
+  <!-- Section 01: Expression Engine -->
+  <section class="section" id="section-01">
+    <div class="section-label">Section 01</div>
+    <h2>The n8n Expression Engine — What Actually Happens</h2>
+    <p>
+      When you write <code>{{ $json.name.toUpperCase() }}</code> in a field, n8n performs this exact sequence. 
+      Understanding the internal mechanics is what separates engineers from surface-level practitioners.
+    </p>
+
+    <div class="flow-container">
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-number">1</div>
+          <div class="step-icon"><i class="fas fa-search"></i></div>
+          <div class="step-title">Parse</div>
+          <div class="step-desc">Detect {{ }} delimiters</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">2</div>
+          <div class="step-icon"><i class="fas fa-cut"></i></div>
+          <div class="step-title">Extract</div>
+          <div class="step-desc">Inner expression string</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">3</div>
+          <div class="step-icon"><i class="fas fa-syringe"></i></div>
+          <div class="step-title">Inject</div>
+          <div class="step-desc">Context ($json, $now)</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">4</div>
+          <div class="step-icon"><i class="fas fa-lock"></i></div>
+          <div class="step-title">Sandbox</div>
+          <div class="step-desc">vm2 JS execution</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">5</div>
+          <div class="step-icon"><i class="fas fa-undo"></i></div>
+          <div class="step-title">Repeat</div>
+          <div class="step-desc">Per item independently</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Two Field Modes in Every Node</span>
+      </div>
+      <pre><code><span class="code-comment">// Mode 1: Fixed Value</span>
+<span class="code-string">"Hello World"</span>  <span class="code-comment">// stored literally, no expression evaluation</span>
+
+<span class="code-comment">// Mode 2: Expression (toggle the {{ }} icon)</span>
+<span class="code-string">"{{ $json.name }}"</span>              <span class="code-comment">// evaluated per item at execution time</span>
+<span class="code-string">"{{ $json.price * 1.15 }}"</span>      <span class="code-comment">// arithmetic evaluated per item</span>
+<span class="code-string">"{{ $now.toISO() }}"</span>            <span class="code-comment">// function call evaluated per item</span></code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>The Sandbox is Real JavaScript</span>
+      </div>
+      <pre><code>{{ $json.email.toLowerCase() }}          <span class="code-comment">// string method</span>
+{{ $json.tags.includes(<span class="code-string">'premium'</span>) }}     <span class="code-comment">// array method</span>
+{{ JSON.stringify($json.metadata) }}     <span class="code-comment">// JSON serialization</span>
+{{ $json.amount.toFixed(<span class="code-number">2</span>) }}            <span class="code-comment">// number formatting</span>
+{{ [$json.a, $json.b, $json.c].join(<span class="code-string">','</span>) }} <span class="code-comment">// array construction</span>
+{{ $json.date ? <span class="code-keyword">new</span> Date($json.date).getFullYear() : <span class="code-string">'unknown'</span> }}  <span class="code-comment">// ternary</span></code></pre>
+    </div>
+
+    <div class="alert alert-red">
+      <h4><i class="fas fa-skull-crossbones"></i> Critical Rule</h4>
+      <p>
+        If a field does not exist, <code>$json.missingField</code> returns <code>undefined</code>, not an error. 
+        But <code>$json.missingObject.field</code> — accessing a property on undefined — throws a runtime error and fails the node. 
+        This is the root cause of most Code node production crashes.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 02: Set Node -->
+  <section class="section" id="section-02">
+    <div class="section-label">Section 02</div>
+    <h2>Set / Edit Fields Node — Complete Reference</h2>
+    <p>
+      The Set node has two operating modes. The single most important toggle is 
+      <strong>"Keep Only Specified Fields"</strong> — it determines whether you pass a clean payload or a bloated one downstream.
+    </p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon orange"><i class="fas fa-hand-pointer"></i></div>
+        <h3>Mode 1: Manual</h3>
+        <p>You define each output field explicitly. The most common mode for day-to-day transformations.</p>
+        <span class="card-tag orange">Most Common</span>
+      </div>
+      <div class="card">
+        <div class="card-icon green"><i class="fas fa-file-code"></i></div>
+        <h3>Mode 2: Raw JSON</h3>
+        <p>You write a complete JSON object. Used when the output shape is itself dynamic.</p>
+        <span class="card-tag green">Dynamic Shape</span>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>"Keep Only Specified" OFF vs ON</span>
+      </div>
+      <pre><code><span class="code-comment">// OFF (default): ALL original fields PLUS your new ones</span>
+Input:  { id: <span class="code-number">1</span>, name: <span class="code-string">"Ahmed"</span>, salary: <span class="code-number">1200</span>, address: {...}, company: {...} }
+Fields: employee_id = {{ $json.id }}, display = {{ $json.name }}
+Output: { id: <span class="code-number">1</span>, name: <span class="code-string">"Ahmed"</span>, salary: <span class="code-number">1200</span>, address: {...}, company: {...},
+          <span class="code-highlight">employee_id: 1, display: "Ahmed"</span> }
+
+<span class="code-comment">// ON: ONLY your defined fields — everything else stripped</span>
+Input:  { id: <span class="code-number">1</span>, name: <span class="code-string">"Ahmed"</span>, salary: <span class="code-number">1200</span>, address: {...}, company: {...} }
+Fields: employee_id = {{ $json.id }}, display = {{ $json.name }}
+Output: { <span class="code-highlight">employee_id: 1, display: "Ahmed"</span> }
+<span class="code-comment">// Everything else is GONE</span></code></pre>
+    </div>
+
+    <div class="alert alert-green">
+      <h4><i class="fas fa-lightbulb"></i> Production Rule</h4>
+      <p>
+        In production pipelines with real API responses (often 20–50 fields), <strong>always use "Keep Only Specified"</strong> 
+        to pass only what downstream nodes need. Sending unnecessary data wastes memory, inflates execution logs, 
+        and causes bugs when unexpected field names collide with downstream nodes' expected inputs.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 03: Code Node -->
+  <section class="section" id="section-03">
+    <div class="section-label critical">Section 03 — The Ceiling Remover</div>
+    <h2>Code Node — The Two Execution Modes</h2>
+    <p>
+      This is the most architecturally significant distinction in the Code node. Getting it wrong produces subtle, 
+      hard-to-diagnose bugs. Every no-code tool hits a wall — the Code node eliminates that wall entirely.
+    </p>
+
+    <div class="compare-grid">
+      <div class="compare-card push">
+        <h3><i class="fas fa-redo"></i> Mode 1: Run Once for Each Item</h3>
+        <p style="font-size: 0.95rem; margin-bottom: 20px;">
+          Executes N times for N items. Each item is processed independently. 
+          Cannot aggregate across items.
+        </p>
+        <div class="code-block" style="margin-bottom: 20px;">
+          <pre style="padding: 16px"><code><span class="code-comment">// Executes N times for N items</span>
+<span class="code-comment">// $input.item = the current item</span>
+<span class="code-comment">// Must return a SINGLE item object</span>
+
+<span class="code-keyword">const</span> item = $input.item.json;
+
+<span class="code-keyword">return</span> {
+  json: {
+    ...item,
+    computed_field: item.price * item.quantity
+  }
+};
+
+<span class="code-comment">// Use when: each item processed independently</span>
+<span class="code-comment">// Cannot do: cross-item sums, counts, averages</span></code></pre>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">When to use:</div>
+        <div class="service-tags">
+          <span class="service-tag green">Per-item transforms</span>
+          <span class="service-tag green">Field calculations</span>
+          <span class="service-tag green">String manipulation</span>
+        </div>
+      </div>
+
+      <div class="compare-card polling">
+        <h3><i class="fas fa-layer-group"></i> Mode 2: Run Once for All Items</h3>
+        <p style="font-size: 0.95rem; margin-bottom: 20px;">
+          Executes ONCE regardless of item count. Full array is available. 
+          Cross-item computation is now possible.
+        </p>
+        <div class="code-block" style="margin-bottom: 20px;">
+          <pre style="padding: 16px"><code><span class="code-comment">// Executes ONCE for all items</span>
+<span class="code-comment">// $input.all() = the entire array</span>
+<span class="code-comment">// Must return an ARRAY of items</span>
+
+<span class="code-keyword">const</span> items = $input.all();
+
+<span class="code-comment">// Cross-item computation</span>
+<span class="code-keyword">const</span> grandTotal = items.reduce(
+  (sum, i) => sum + (i.json.price * i.json.quantity), <span class="code-number">0</span>
+);
+
+<span class="code-keyword">const</span> processed = items.map(item => ({
+  json: {
+    ...item.json,
+    subtotal: item.json.price * item.json.quantity,
+    grand_total: grandTotal,
+    percentage: Math.round(
+      (item.json.price * item.json.quantity) / grandTotal * <span class="code-number">10000</span>
+    ) / <span class="code-number">100</span>
+  }
+}));
+
+<span class="code-keyword">return</span> processed;
+
+<span class="code-comment">// Use when: aggregating across ALL items</span></code></pre>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">When to use:</div>
+        <div class="service-tags">
+          <span class="service-tag blue">Totals & averages</span>
+          <span class="service-tag blue">Deduplication</span>
+          <span class="service-tag blue">Sorting</span>
+          <span class="service-tag blue">Cross-item logic</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-orange">
+      <h4><i class="fas fa-exclamation-triangle"></i> Mandatory Selection Rule</h4>
+      <p>
+        <strong>Do you need data from item A while processing item B?</strong> → Run Once for All Items<br>
+        <strong>Does each item's transformation depend only on itself?</strong> → Run Once for Each Item
+      </p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>$input Methods Available in Both Modes</span>
+      </div>
+      <pre><code>$input.item              <span class="code-comment">// Current item ("per item" mode)</span>
+$input.all()             <span class="code-comment">// Full array of all input items</span>
+$input.first()           <span class="code-comment">// First item (index 0)</span>
+$input.last()            <span class="code-comment">// Last item</span>
+$input.itemMatching(<span class="code-number">0</span>)   <span class="code-comment">// Item at specific index</span>
+
+<span class="code-comment">// Reference other nodes:</span>
+$(<span class="code-string">'HTTP Request'</span>).all()    <span class="code-comment">// All items from named node</span>
+$(<span class="code-string">'HTTP Request'</span>).first()  <span class="code-comment">// First item from named node</span>
+$(<span class="code-string">'HTTP Request'</span>).item     <span class="code-comment">// Paired item (same index)</span></code></pre>
+    </div>
+  </section>
+
+  <!-- Section 04: Filter Node -->
+  <section class="section" id="section-04">
+    <div class="section-label">Section 04</div>
+    <h2>Filter Node — Deletion, Not Routing</h2>
+    <p>
+      The Filter node evaluates a condition for every item. Items where the condition is true proceed. 
+      Items where the condition is false are <strong>permanently removed</strong> from the pipeline. Gone. Not sent anywhere.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Filter Behavior</span>
+      </div>
+      <pre><code>Input:  [A, B, C, D, E]
+Condition: value > <span class="code-number">100</span>
+
+Output: [A, C, D]     <span class="code-comment">// B and E are GONE</span>
+                        <span class="code-comment">// Not sent anywhere, not error-handled</span></code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Multi-Condition Combinations</span>
+      </div>
+      <pre><code><span class="code-comment">// AND combinator: ALL conditions must be true</span>
+condition <span class="code-number">1</span>: active === <span class="code-keyword">true</span>
+condition <span class="code-number">2</span>: salary > <span class="code-number">1000</span>
+condition <span class="code-number">3</span>: department !== <span class="code-string">'Temp'</span>
+<span class="code-comment">// Only items satisfying ALL three pass</span>
+
+<span class="code-comment">// OR combinator: ANY condition being true passes the item</span>
+condition <span class="code-number">1</span>: department === <span class="code-string">'Engineering'</span>
+condition <span class="code-number">2</span>: salary > <span class="code-number">2000</span>
+<span class="code-comment">// Items in Engineering OR earning > 2000 pass</span></code></pre>
+    </div>
+
+    <div class="alert alert-green">
+      <h4><i class="fas fa-lightbulb"></i> When to Use Filter</h4>
+      <p>
+        When you genuinely want to <strong>discard records</strong>: invalid data, already-processed records, 
+        records outside date range, test records in production.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 05: IF Node -->
+  <section class="section" id="section-05">
+    <div class="section-label">Section 05</div>
+    <h2>IF Node — Routing, Not Deletion</h2>
+    <p>
+      The IF node evaluates a condition for every item, then routes each item to one of two outputs. 
+      <strong>Every item continues</strong> — to a different branch. Total items in = total items out (across both branches).
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>IF Behavior</span>
+      </div>
+      <pre><code>Input:  [A, B, C, D, E]
+Condition: value > <span class="code-number">100</span>
+
+True output:  [A, C, D]     <span class="code-comment">→ branch processing high values</span>
+False output: [B, E]        <span class="code-comment">→ branch processing low values</span>
+
+Total: <span class="code-number">5</span> in = <span class="code-number">5</span> out (across both branches)</code></pre>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Situation</th>
+            <th>Use Filter</th>
+            <th>Use IF</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Invalid records — discard entirely</td>
+            <td style="color: var(--accent-green);">✅</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Records needing different processing paths</td>
+            <td></td>
+            <td style="color: var(--accent-green);">✅</td>
+          </tr>
+          <tr>
+            <td>Filtering test data from production data</td>
+            <td style="color: var(--accent-green);">✅</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>VIP customers vs standard customers</td>
+            <td></td>
+            <td style="color: var(--accent-green);">✅</td>
+          </tr>
+          <tr>
+            <td>Records missing required fields</td>
+            <td style="color: var(--accent-green);">✅</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Large vs small orders</td>
+            <td></td>
+            <td style="color: var(--accent-green);">✅</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-red">
+      <h4><i class="fas fa-skull-crossbones"></i> The Fatal Confusion</h4>
+      <p>
+        <strong>Filter deletes items.</strong> <strong>IF routes items.</strong> These are architecturally opposite behaviors. 
+        Using them interchangeably is the #1 cause of "missing data" bugs in production workflows.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 06: Complete Variable Reference -->
+  <section class="section" id="section-06">
+    <div class="section-label">Section 06</div>
+    <h2>Complete Expression Variable Reference</h2>
+    <p>
+      The full reference of every built-in variable available in n8n expressions. Bookmark this section.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>All Built-in Variables</span>
+      </div>
+      <pre><code><span class="code-comment">// ── Data access ──────────────────────────────────────────────</span>
+$json                        <span class="code-comment">// Current item's data</span>
+$json.fieldName              <span class="code-comment">// Specific field</span>
+$json.nested.field           <span class="code-comment">// Nested field access</span>
+$json.array[<span class="code-number">0</span>].field         <span class="code-comment">// Array element access</span>
+$binary                      <span class="code-comment">// Current item's binary data (files)</span>
+
+<span class="code-comment">// ── Item metadata ─────────────────────────────────────────────</span>
+$itemIndex                   <span class="code-comment">// Index of current item (0, 1, 2...)</span>
+$runIndex                    <span class="code-comment">// Current loop iteration</span>
+
+<span class="code-comment">// ── Node references ───────────────────────────────────────────</span>
+$input.item                  <span class="code-comment">// Current item being processed</span>
+$input.all()                 <span class="code-comment">// All input items as array</span>
+$input.first()               <span class="code-comment">// First input item</span>
+$input.last()                <span class="code-comment">// Last input item</span>
+$(<span class="code-string">'Node Name'</span>).item          <span class="code-comment">// Paired item from named node</span>
+$(<span class="code-string">'Node Name'</span>).all()         <span class="code-comment">// All items from named node</span>
+$(<span class="code-string">'Node Name'</span>).first()       <span class="code-comment">// First item from named node</span>
+$prevNode.name               <span class="code-comment">// Previous node's name string</span>
+$prevNode.outputIndex        <span class="code-comment">// Which output index previous node used</span>
+
+<span class="code-comment">// ── Time & dates (Luxon DateTime) ─────────────────────────────</span>
+$now                         <span class="code-comment">// Current datetime</span>
+$now.toISO()                 <span class="code-comment">// "2026-07-04T09:00:00.000Z"</span>
+$now.toFormat(<span class="code-string">'yyyy-MM-dd'</span>)  <span class="code-comment">// "2026-07-04"</span>
+$now.plus({ days: <span class="code-number">7</span> }).toISO()         <span class="code-comment">// 7 days from now</span>
+$now.minus({ hours: <span class="code-number">2</span> }).toISO()       <span class="code-comment">// 2 hours ago</span>
+$now.setZone(<span class="code-string">'Asia/Baghdad'</span>).toISO()   <span class="code-comment">// Baghdad timezone</span>
+$now.weekday                 <span class="code-comment">// 1 (Monday) through 7 (Sunday)</span>
+$today                       <span class="code-comment">// Today at midnight</span>
+$today.toFormat(<span class="code-string">'cccc'</span>)      <span class="code-comment">// "Saturday" (day name)</span>
+
+<span class="code-comment">// ── Workflow & execution context ──────────────────────────────</span>
+$workflow.id                 <span class="code-comment">// Current workflow ID</span>
+$workflow.name               <span class="code-comment">// Current workflow name</span>
+$execution.id                <span class="code-comment">// Current execution ID</span>
+$execution.mode              <span class="code-comment">// 'manual' | 'trigger' | 'webhook'</span>
+$execution.resumeUrl         <span class="code-comment">// URL to resume waiting workflow</span>
+
+<span class="code-comment">// ── Configuration ─────────────────────────────────────────────</span>
+$vars.variableName           <span class="code-comment">// Workflow-level variable</span>
+$env.ENV_VARIABLE_NAME       <span class="code-comment">// n8n instance environment variable</span></code></pre>
+    </div>
+  </section>
+
+  <!-- Section 07: Defensive Coding -->
+  <section class="section" id="section-07">
+    <div class="section-label critical">Section 07 — Production Safety</div>
+    <h2>Defensive Coding Patterns in the Code Node</h2>
+    <p>
+      The Code node crashes in production with 500 items when practitioners don't validate. 
+      These patterns prevent that.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Pattern 1: Null-Check Before Access</span>
+      </div>
+      <pre><code><span class="code-comment">// ❌ DANGEROUS: Crashes if customer is null</span>
+<span class="code-keyword">const</span> city = item.json.customer.address.city;
+
+<span class="code-comment">// ✅ SAFE: Graceful fallback</span>
+<span class="code-keyword">const</span> city = item.json.customer?.address?.city || <span class="code-string">'Unknown'</span>;
+
+<span class="code-comment">// ✅ SAFER: Explicit validation</span>
+<span class="code-keyword">const</span> customer = item.json.customer;
+<span class="code-keyword">const</span> city = customer && customer.address 
+  ? customer.address.city 
+  : <span class="code-string">'Unknown'</span>;</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Pattern 2: Type Validation</span>
+      </div>
+      <pre><code><span class="code-comment">// ❌ DANGEROUS: String concatenation instead of math</span>
+<span class="code-keyword">const</span> total = item.json.price + item.json.tax;  <span class="code-comment">// "100" + "15" = "10015"</span>
+
+<span class="code-comment">// ✅ SAFE: Explicit casting</span>
+<span class="code-keyword">const</span> total = Number(item.json.price) + Number(item.json.tax);  <span class="code-comment">// 115</span>
+
+<span class="code-comment">// ✅ SAFER: Validate before casting</span>
+<span class="code-keyword">const</span> price = <span class="code-keyword">typeof</span> item.json.price === <span class="code-string">'number'</span> 
+  ? item.json.price 
+  : parseFloat(item.json.price) || <span class="code-number">0</span>;</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Pattern 3: Array Safety</span>
+      </div>
+      <pre><code><span class="code-comment">// ❌ DANGEROUS: Crashes if tags is not an array</span>
+<span class="code-keyword">const</span> firstTag = item.json.tags[<span class="code-number">0</span>];
+
+<span class="code-comment">// ✅ SAFE: Always check array</span>
+<span class="code-keyword">const</span> tags = Array.isArray(item.json.tags) ? item.json.tags : [];
+<span class="code-keyword">const</span> firstTag = tags[<span class="code-number">0</span>] || <span class="code-string">'none'</span>;
+
+<span class="code-comment">// ✅ SAFER: Default empty array</span>
+<span class="code-keyword">const</span> { tags = [] } = item.json;
+<span class="code-keyword">const</span> isPremium = tags.includes(<span class="code-string">'premium'</span>);</code></pre>
+    </div>
+  </section>
+
+  <!-- Section 08: Project -->
+  <section class="section" id="section-08">
+    <div class="section-label">Section 08</div>
+    <h2>Project: Invoice Processing Pipeline</h2>
+    <p>
+      A real-world flow: receive raw invoice data, normalize dates, compute totals, 
+      filter valid records, and route high-value orders to a dedicated branch.
+    </p>
+
+    <div class="flow-container">
+      <div class="flow-steps" style="justify-content: center; gap: 30px;">
+        <div class="flow-step" style="max-width: 180px;">
+          <div class="step-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--accent-orange);"><i class="fas fa-plug"></i></div>
+          <div class="step-title">Webhook</div>
+          <div class="step-desc">Raw invoice data<br>POST /invoices</div>
+        </div>
+        <div class="flow-step" style="max-width: 30px;"><div style="font-size:1.5rem;color:var(--accent-orange);margin-top:20px;">→</div></div>
+        <div class="flow-step" style="max-width: 180px;">
+          <div class="step-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-green);"><i class="fas fa-code"></i></div>
+          <div class="step-title">Code Node</div>
+          <div class="step-desc">Normalize dates<br>Compute totals</div>
+        </div>
+        <div class="flow-step" style="max-width: 30px;"><div style="font-size:1.5rem;color:var(--accent-orange);margin-top:20px;">→</div></div>
+        <div class="flow-step" style="max-width: 180px;">
+          <div class="step-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--accent-purple);"><i class="fas fa-filter"></i></div>
+          <div class="step-title">Filter</div>
+          <div class="step-desc">Remove invalid<br>amount > 0</div>
+        </div>
+        <div class="flow-step" style="max-width: 30px;"><div style="font-size:1.5rem;color:var(--accent-orange);margin-top:20px;">→</div></div>
+        <div class="flow-step" style="max-width: 180px;">
+          <div class="step-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue);"><i class="fas fa-code-branch"></i></div>
+          <div class="step-title">IF Node</div>
+          <div class="step-desc">Route by value<br>High vs Standard</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Code Node — Run Once for All Items</span>
+      </div>
+      <pre><code><span class="code-keyword">const</span> items = $input.all();
+
+<span class="code-comment">// Compute grand total first</span>
+<span class="code-keyword">const</span> grandTotal = items.reduce((sum, item) => {
+  <span class="code-keyword">const</span> amount = <span class="code-keyword">typeof</span> item.json.amount === <span class="code-string">'number'</span> 
+    ? item.json.amount 
+    : parseFloat(item.json.amount) || <span class="code-number">0</span>;
+  <span class="code-keyword">return</span> sum + amount;
+}, <span class="code-number">0</span>);
+
+<span class="code-keyword">const</span> processed = items.map(item => {
+  <span class="code-keyword">const</span> raw = item.json;
+
+  <span class="code-comment">// Defensive date normalization</span>
+  <span class="code-keyword">const</span> dateStr = raw.date || raw.invoice_date || raw.created_at;
+  <span class="code-keyword">const</span> normalizedDate = dateStr 
+    ? <span class="code-keyword">new</span> Date(dateStr).toISOString() 
+    : <span class="code-string">'invalid-date'</span>;
+
+  <span class="code-keyword">const</span> amount = Number(raw.amount) || <span class="code-number">0</span>;
+  <span class="code-keyword">const</span> tax = amount * <span class="code-number">0.15</span>;
+
+  <span class="code-keyword">return</span> {
+    json: {
+      invoice_id: raw.id || <span class="code-string">'UNKNOWN'</span>,
+      customer: raw.customer?.name || <span class="code-string">'Guest'</span>,
+      amount: amount,
+      tax: Math.round(tax * <span class="code-number">100</span>) / <span class="code-number">100</span>,
+      total: Math.round((amount + tax) * <span class="code-number">100</span>) / <span class="code-number">100</span>,
+      date: normalizedDate,
+      percentage_of_total: grandTotal > <span class="code-number">0</span> 
+        ? Math.round((amount / grandTotal) * <span class="code-number">10000</span>) / <span class="code-number">100</span> 
+        : <span class="code-number">0</span>
+    }
+  };
+});
+
+<span class="code-keyword">return</span> processed;</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>Filter Node — Remove Invalid</span>
+      </div>
+      <pre><code><span class="code-comment">// Condition: amount > 0 AND date is valid</span>
+Condition <span class="code-number">1</span>: {{ $json.amount > <span class="code-number">0</span> }}
+Condition <span class="code-number">2</span>: {{ $json.date !== <span class="code-string">'invalid-date'</span> }}
+Combinator: AND</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <span>IF Node — Route by Value</span>
+      </div>
+      <pre><code><span class="code-comment">// Condition: total >= 500</span>
+True branch (≥ <span class="code-number">500</span>):  → Dedicated account manager
+False branch (< <span class="code-number">500</span>): → Standard fulfillment</code></pre>
+    </div>
+  </section>
+
+  <!-- Section 09: Quiz -->
+  <section class="section quiz-section" id="section-09">
+    <div class="section-label">Section 09 — Quiz</div>
+    <h2>Test Your Understanding</h2>
+    <p>Three questions on expression engine, Code node modes, and Filter vs IF.</p>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        1. What happens when you write <code>{{ $json.missingObject.field }}</code> and missingObject is undefined?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">Returns undefined silently</div>
+        <div class="quiz-option" data-correct="true">Throws a runtime error and fails the node</div>
+        <div class="quiz-option" data-correct="false">Returns null</div>
+        <div class="quiz-option" data-correct="false">Skips to the next item</div>
+      </div>
+    </div>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        2. You need to compute the average of all items in the pipeline. Which Code node mode?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">Run Once for Each Item</div>
+        <div class="quiz-option" data-correct="true">Run Once for All Items</div>
+        <div class="quiz-option" data-correct="false">Either mode works</div>
+        <div class="quiz-option" data-correct="false">Use the Set node instead</div>
+      </div>
+    </div>
+
+    <div class="quiz-container">
+      <div class="quiz-question">
+        3. You want to send VIP customers to a special branch and standard customers to another. Which node?
+      </div>
+      <div class="quiz-options">
+        <div class="quiz-option" data-correct="false">Filter Node — removes non-VIPs</div>
+        <div class="quiz-option" data-correct="true">IF Node — routes both groups to different branches</div>
+        <div class="quiz-option" data-correct="false">Set Node — sets a flag</div>
+        <div class="quiz-option" data-correct="false">Code Node — manual branching</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="../index.html"><i class="fas fa-arrow-left"></i> Back to Index</a></p>
+    <p style="margin-top: 12px;">
+      <a href="day-03.html"><i class="fas fa-arrow-left"></i> Day 03</a> · 
+      <span style="color: var(--text-muted);">Day 05 — Send me the content to design it</span>
+    </p>
+  </footer>
+
+  <script src="../js/quiz.js"></script>
+</body>
+</html>
