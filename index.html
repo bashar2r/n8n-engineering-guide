@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>n8n Engineering Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background-color: #0a0c0f; color: #f1f5f9; }
+        .gradient-orb {
+            position: fixed; border-radius: 50%; filter: blur(120px);
+            opacity: 0.12; pointer-events: none; z-index: 0;
+        }
+        .orb-1 { top: -10%; right: -10%; width: 500px; height: 500px; background: #f59e0b; }
+        .orb-2 { bottom: -10%; left: -10%; width: 600px; height: 600px; background: #10b981; }
+        .card {
+            background: rgba(22, 25, 34, 0.9);
+            border: 1px solid #1e2129;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .card:hover {
+            border-color: rgba(245, 158, 11, 0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .card-link { display: block; text-decoration: none; color: inherit; }
+        .card-link:hover { text-decoration: none; }
+        .card-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .card-disabled:hover {
+            transform: none;
+            border-color: #1e2129;
+            box-shadow: none;
+        }
+        .day-label {
+            font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+            text-transform: uppercase; color: #f59e0b; margin-bottom: 0.75rem;
+        }
+        .tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 0.7rem; color: #64748b; background: rgba(100, 116, 139, 0.1);
+            padding: 4px 10px; border-radius: 20px;
+        }
+        .status-ready {
+            position: absolute; top: 16px; right: 16px;
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #10b981; box-shadow: 0 0 8px #10b981;
+        }
+        .status-soon {
+            position: absolute; top: 16px; right: 16px;
+            font-size: 0.65rem; color: #64748b; font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        .top-border { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 16px 16px 0 0; }
+        .border-amber { background: linear-gradient(90deg, #f59e0b, #f97316); }
+        .border-blue { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+        .border-purple { background: linear-gradient(90deg, #8b5cf6, #a855f7); }
+        .border-emerald { background: linear-gradient(90deg, #10b981, #14b8a6); }
+        .border-orange { background: linear-gradient(90deg, #f97316, #fb923c); }
+        .border-slate { background: linear-gradient(90deg, #475569, #64748b); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0c0f; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen relative">
+    <div class="gradient-orb orb-1"></div>
+    <div class="gradient-orb orb-2"></div>
+
+    <!-- Hero -->
+    <section class="relative z-10 pt-20 pb-12 px-4 text-center">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-5xl md:text-6xl font-bold mb-4 tracking-tight">
+                n8n <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">Engineering</span> Guide
+            </h1>
+            <p class="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
+                A visual, architecture-first guide to mastering n8n automation. 
+                No drag-and-drop tutorials — just deep technical understanding.
+            </p>
+        </div>
+    </section>
+
+    <!-- Days Grid -->
+    <section class="relative z-10 px-4 pb-20">
+        <div class="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <!-- Day 01 -->
+            <a href="days/day-01.html" class="card-link">
+                <div class="card p-6 h-full">
+                    <div class="top-border border-amber"></div>
+                    <div class="status-ready"></div>
+                    <div class="day-label">Day 01</div>
+                    <h2 class="text-xl font-bold mb-3 leading-tight">Architecture & Installation</h2>
+                    <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+                        Understand n8n's engine, deployment options, and how workflows execute under the hood.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="tag"><i data-lucide="server" class="w-3 h-3"></i> Self-hosted</span>
+                        <span class="tag"><i data-lucide="cloud" class="w-3 h-3"></i> Cloud</span>
+                        <span class="tag"><i data-lucide="clock" class="w-3 h-3"></i> 15 min</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Day 02 -->
+            <a href="days/day-02.html" class="card-link">
+                <div class="card p-6 h-full">
+                    <div class="top-border border-blue"></div>
+                    <div class="status-ready"></div>
+                    <div class="day-label">Day 02</div>
+                    <h2 class="text-xl font-bold mb-3 leading-tight">Triggers Deep Dive</h2>
+                    <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+                        Webhooks, Cron, App Events, and the mistakes that kill workflows in production.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="tag"><i data-lucide="zap" class="w-3 h-3"></i> 4 Trigger Types</span>
+                        <span class="tag"><i data-lucide="git-branch" class="w-3 h-3"></i> 3 Response Modes</span>
+                        <span class="tag"><i data-lucide="clock" class="w-3 h-3"></i> 20 min</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Day 03 -->
+            <a href="days/day-03.html" class="card-link">
+                <div class="card p-6 h-full">
+                    <div class="top-border border-purple"></div>
+                    <div class="status-ready"></div>
+                    <div class="day-label">Day 03</div>
+                    <h2 class="text-xl font-bold mb-3 leading-tight">Automation Fundamentals & n8n Architecture</h2>
+                    <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+                        Execution model, JSON Items Array, node taxonomy, expressions, and your first 3-node pipeline.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="tag"><i data-lucide="cpu" class="w-3 h-3"></i> Core Concepts</span>
+                        <span class="tag"><i data-lucide="database" class="w-3 h-3"></i> Data Model</span>
+                        <span class="tag"><i data-lucide="clock" class="w-3 h-3"></i> 30 min</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Day 04 -->
+            <a href="days/day-04.html" class="card-link">
+                <div class="card p-6 h-full">
+                    <div class="top-border border-emerald"></div>
+                    <div class="status-ready"></div>
+                    <div class="day-label">Day 04</div>
+                    <h2 class="text-xl font-bold mb-3 leading-tight">Data Manipulation & Transformation</h2>
+                    <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+                        Expression engine, Set, Code, Filter & IF nodes. Defensive coding for production safety.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="tag"><i data-lucide="code" class="w-3 h-3"></i> Expressions</span>
+                        <span class="tag"><i data-lucide="filter" class="w-3 h-3"></i> Filter vs IF</span>
+                        <span class="tag"><i data-lucide="clock" class="w-3 h-3"></i> 25 min</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Day 05 -->
+            <a href="days/day-05.html" class="card-link">
+                <div class="card p-6 h-full">
+                    <div class="top-border border-orange"></div>
+                    <div class="status-ready"></div>
+                    <div class="day-label">Day 05</div>
+                    <h2 class="text-xl font-bold mb-3 leading-tight">HTTP Requests & APIs</h2>
+                    <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+                        Connect to any REST API, handle authentication, pagination, and rate limiting.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="tag"><i data-lucide="globe" class="w-3 h-3"></i> HTTP</span>
+                        <span class="tag"><i data-lucide="shield" class="w-3 h-3"></i> Auth</span>
+                        <span class="tag"><i data-lucide="clock" class="w-3 h-3"></i> 30 min</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Day 06 -->
+            <div class="card card-disabled p-6 h-full">
+                <div class="top-border border-slate"></div>
+                <div class="status-soon">COMING SOON</div>
+                <div class="day-label" style="color: #64748b;">Day 06</div>
+                <h2 class="text-xl font-bold mb-3 leading-tight text-slate-500">Databases & Storage</h2>
+                <p class="text-slate-600 text-sm mb-6 leading-relaxed">
+                    Read, write, and transform data from PostgreSQL, MySQL, MongoDB, and SQLite.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <span class="tag" style="color: #475569; background: rgba(71, 85, 105, 0.1);"><i data-lucide="database" class="w-3 h-3"></i> SQL</span>
+                    <span class="tag" style="color: #475569; background: rgba(71, 85, 105, 0.1);"><i data-lucide="hard-drive" class="w-3 h-3"></i> NoSQL</span>
+                    <span class="tag" style="color: #475569; background: rgba(71, 85, 105, 0.1);"><i data-lucide="clock" class="w-3 h-3"></i> 25 min</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="relative z-10 py-8 px-4 border-t border-slate-800/50 text-center">
+        <p class="text-slate-600 text-sm">
+            Built with ❤️ for engineers who want to understand n8n, not just use it.
+        </p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
