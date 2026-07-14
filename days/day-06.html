@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day 6 — Database Operations | n8n Deep Dive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0c0f;
+            --bg-secondary: #111318;
+            --bg-card: #161922;
+            --border-color: #1e2129;
+            --accent-orange: #f59e0b;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-red: #ef4444;
+            --accent-cyan: #06b6d4;
+            --accent-pink: #ec4899;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+        }
+        * { font-family: 'Inter', sans-serif; }
+        code, pre { font-family: 'JetBrains Mono', monospace !important; font-size: 13px !important; }
+        body { background-color: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        .gradient-orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: 0.12; pointer-events: none; z-index: 0; }
+        .orb-1 { top: -10%; right: -10%; width: 600px; height: 600px; background: var(--accent-pink); }
+        .orb-2 { bottom: -10%; left: -10%; width: 700px; height: 700px; background: var(--accent-blue); }
+        .orb-3 { top: 40%; left: 40%; width: 500px; height: 500px; background: var(--accent-purple); opacity: 0.06; }
+        .glass-card {
+            background: rgba(22, 25, 34, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(236, 72, 153, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .section-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--accent-orange); font-size: 0.75rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1rem;
+        }
+        .section-badge::before { content: ""; display: block; width: 24px; height: 2px; background: var(--accent-orange); }
+        .code-block {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 12px; overflow: hidden;
+        }
+        .code-header {
+            background: #161b22; border-bottom: 1px solid #21262d; padding: 12px 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .code-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot-red { background: #ff5f56; } .dot-yellow { background: #ffbd2e; } .dot-green { background: #27c93f; }
+        .warning-box {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+            border-left: 3px solid var(--accent-red); border-radius: 0 12px 12px 0;
+        }
+        .info-box {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+            border-left: 3px solid var(--accent-blue); border-radius: 0 12px 12px 0;
+        }
+        .success-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            border-left: 3px solid var(--accent-green); border-radius: 0 12px 12px 0;
+        }
+        .quiz-option {
+            background: rgba(30, 33, 41, 0.6); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .quiz-option:hover { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+        .quiz-option.correct { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.1); }
+        .quiz-option.wrong { border-color: var(--accent-red); background: rgba(239, 68, 68, 0.1); }
+        .custom-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .custom-table th {
+            background: rgba(30, 33, 41, 0.8); padding: 14px; text-align: left;
+            font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .custom-table td { padding: 14px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.9rem; }
+        .custom-table tr:hover td { background: rgba(30, 33, 41, 0.4); }
+        .pill {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .pill-orange { background: rgba(245, 158, 11, 0.15); color: var(--accent-orange); }
+        .pill-green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .pill-blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+        .pill-red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+        .pill-purple { background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); }
+        .pill-pink { background: rgba(236, 72, 153, 0.15); color: var(--accent-pink); }
+        .pill-cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; } .delay-4 { animation-delay: 0.4s; }
+        .nav-dots { position: fixed; right: 24px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; z-index: 50; }
+        .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: #334155; cursor: pointer; transition: all 0.3s; }
+        .nav-dot.active { background: var(--accent-orange); transform: scale(1.3); }
+        .op-card { border-top: 3px solid transparent; }
+        .op-select { border-color: var(--accent-green); }
+        .op-insert { border-color: var(--accent-blue); }
+        .op-update { border-color: var(--accent-orange); }
+        .op-upsert { border-color: var(--accent-purple); }
+        .op-delete { border-color: var(--accent-red); }
+        .op-query { border-color: var(--accent-cyan); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+    <div class="gradient-orb orb-1"></div>
+    <div class="gradient-orb orb-2"></div>
+    <div class="gradient-orb orb-3"></div>
+
+    <div class="nav-dots hidden md:flex">
+        <div class="nav-dot active" onclick="scrollToSection('hero')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section1')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section2')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section3')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section4')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section5')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section6')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section7')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section8')"></div>
+    </div>
+
+    <!-- Hero -->
+    <section id="hero" class="relative z-10 min-h-screen flex items-center justify-center px-4 py-20">
+        <div class="max-w-5xl mx-auto text-center">
+            <div class="animate-in">
+                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 text-sm font-semibold mb-8">
+                    <i data-lucide="database" class="w-4 h-4"></i>
+                    Day 6 — Database Operations
+                </span>
+            </div>
+            <h1 class="animate-in delay-1 text-5xl md:text-7xl font-bold mb-6 leading-tight">
+                Postgres, Queries,<br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400">
+                    Batching & Production Writes
+                </span>
+            </h1>
+            <p class="animate-in delay-2 text-lg text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed">
+                An interactive visual reference covering database operations at the engine level — from parameterized queries to transaction batching and the exact failure state of a mid-batch constraint violation.
+            </p>
+            <div class="animate-in delay-3 flex flex-wrap justify-center gap-6 mb-16">
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="table" class="w-4 h-4 text-pink-500"></i><span>6 Operations</span></div>
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i><span>Parameterized Queries</span></div>
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="layers" class="w-4 h-4 text-blue-500"></i><span>3 Batching Modes</span></div>
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="alert-triangle" class="w-4 h-4 text-red-500"></i><span>1 Fatal Mistake</span></div>
+            </div>
+            <div class="animate-in delay-4 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-pink-500 mb-2">6</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">Node Operations</div>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-emerald-400 mb-2">$1</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">Parameterized</div>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-blue-400 mb-2">3</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">Batching Modes</div>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-purple-400 mb-2">0</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">SQL Injection Risk</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 01: Operations Overview -->
+    <section id="section1" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 01</div>
+            <h2 class="text-4xl font-bold mb-4">The Six Postgres Operations</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">Every workflow you've built ends by handing data to the next system. Today is about the moment that data becomes permanent — written to a table a business actually runs on.</p>
+
+            <div class="glass-card overflow-hidden">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Operation</th>
+                            <th>What It Does</th>
+                            <th>Risk If Misused</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="pill pill-cyan font-mono">Execute Query</span></td>
+                            <td class="text-white">Runs any raw SQL you write ($1,$2,$3 for parameters)</td>
+                            <td><span class="text-red-400">SQL injection</span> if not parameterized</td>
+                        </tr>
+                        <tr>
+                            <td><span class="pill pill-blue font-mono">Insert</span></td>
+                            <td class="text-white">Adds new rows</td>
+                            <td><span class="text-red-400">Duplicate-key error</span> if row already exists</td>
+                        </tr>
+                        <tr>
+                            <td><span class="pill pill-orange font-mono">Update</span></td>
+                            <td class="text-white">Modifies existing rows matching a condition</td>
+                            <td><span class="text-amber-400">Silently updates zero rows</span> if match fails</td>
+                        </tr>
+                        <tr>
+                            <td><span class="pill pill-purple font-mono">Upsert</span></td>
+                            <td class="text-white">Insert if new, Update if exists (by unique key)</td>
+                            <td>Requires correctly defined <span class="text-amber-400">unique constraint</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="pill pill-green font-mono">Select</span></td>
+                            <td class="text-white">Reads rows matching a condition</td>
+                            <td class="text-emerald-400">None (read-only)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="pill pill-red font-mono">Delete</span></td>
+                            <td class="text-white">Delete rows / Truncate table / Drop table</td>
+                            <td><span class="text-red-400">Deletes ALL rows</span> if no condition given</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 02: Parameterized Queries -->
+    <section id="section2" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 02 — Critical</div>
+            <h2 class="text-4xl font-bold mb-4">Parameterized Queries</h2>
+            <p class="text-slate-400 mb-8 max-w-2xl">The single most important production concept in this lesson. This is today's equivalent of Day 2's $json.body and Day 5's Full Response toggle.</p>
+
+            <div class="warning-box p-8 rounded-r-2xl mb-8">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="skull" class="w-6 h-6 text-red-500 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h3 class="text-red-400 font-bold text-lg mb-2">Never Build SQL with String Interpolation</h3>
+                        <p class="text-slate-300 leading-relaxed text-sm">Any time user-influenced data ends up inside a SQL string, it must go through <code class="bg-red-500/20 text-red-300 px-2 py-0.5 rounded">$1/$2/$3</code> and the Query Parameters field — never through direct string interpolation, and never through <code class="bg-red-500/20 text-red-300 px-2 py-0.5 rounded">{{ }}</code> expressions written directly inside the query text.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass-card p-6 border-t-2 border-red-500">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-red">VULNERABLE — Never Do This</span></div>
+                    <div class="code-block">
+                        <div class="code-header"><span class="text-xs text-slate-400">code-node.js</span></div>
+                        <pre><code class="language-javascript">// Code node building a query via
+// string interpolation
+const email = $json.email;
+const query = `SELECT * FROM users
+  WHERE email = '${email}'`;
+
+// If email contains:
+// ' OR '1'='1
+
+// The query becomes:
+// SELECT * FROM users
+// WHERE email = '' OR '1'='1'
+// → Returns EVERY row. Full breach.</code></pre>
+                    </div>
+                    <div class="mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                        <p class="text-red-400 text-sm font-semibold">Result: Complete data breach</p>
+                        <p class="text-slate-500 text-xs mt-1">'1'='1' is always true → returns entire table</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 border-t-2 border-emerald-500">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-green">SAFE — Always Do This</span></div>
+                    <div class="code-block">
+                        <div class="code-header"><span class="text-xs text-slate-400">postgres-node.json</span></div>
+                        <pre><code class="language-sql">-- Execute Query operation
+SELECT * FROM users
+WHERE email = $1</code></pre>
+                    </div>
+                    <div class="code-block mt-4">
+                        <div class="code-header"><span class="text-xs text-slate-400">Query Parameters</span></div>
+                        <pre><code class="language-json">{{ $json.email }}</code></pre>
+                    </div>
+                    <div class="mt-4 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                        <p class="text-emerald-400 text-sm font-semibold">Result: Safe, no matter the input</p>
+                        <p class="text-slate-500 text-xs mt-1">$1 is never treated as SQL text — always a literal value</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 success-box p-6 rounded-r-2xl">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="shield-check" class="w-6 h-6 text-emerald-500 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h4 class="text-emerald-400 font-bold mb-1">The Rule</h4>
+                        <p class="text-slate-300 text-sm leading-relaxed">The database driver itself enforces separation between code and data. Even if someone submits <code class="bg-slate-800 px-1 rounded">' OR '1'='1</code> as an email, it is searched for as a literal (bizarre) email address, matches nothing, and returns zero rows. Parameterization is the <strong>actual fix</strong> — not "sanitizing" the string yourself.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 03: Query Batching -->
+    <section id="section3" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 03</div>
+            <h2 class="text-4xl font-bold mb-4">Query Batching — Database-Level Reality</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">When a Postgres node receives multiple items, the Query Batching setting controls exactly how those items become database round trips. This maps directly back to Day 1's items-array model.</p>
+
+            <div class="space-y-6">
+                <div class="glass-card p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold">1</div>
+                        <div><h3 class="font-bold text-lg">Single Query</h3><p class="text-xs text-slate-500">Fastest, least granular</p></div>
+                    </div>
+                    <div class="code-block mb-4">
+                        <pre><code class="language-sql">-- All N items → 1 combined query
+-- 1 round trip to Postgres</code></pre>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                        <div class="p-3 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
+                            <span class="text-emerald-400 font-semibold">✓ Fastest</span> for large item counts
+                        </div>
+                        <div class="p-3 bg-red-500/5 rounded-lg border border-red-500/10">
+                            <span class="text-red-400 font-semibold">✗ Less granular</span> — one bad item may fail entire batch
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-bold">2</div>
+                        <div><h3 class="font-bold text-lg">Independently</h3><p class="text-xs text-slate-500">Per-item isolation</p></div>
+                    </div>
+                    <div class="code-block mb-4">
+                        <pre><code class="language-sql">-- Item 1 → Query 1 → response 1
+-- Item 2 → Query 2 → response 2
+-- ...
+-- Item N → Query N → response N
+-- N separate round trips</code></pre>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                        <div class="p-3 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
+                            <span class="text-emerald-400 font-semibold">✓ Per-item success/failure</span> — one bad row doesn't affect others
+                        </div>
+                        <div class="p-3 bg-amber-500/5 rounded-lg border border-amber-500/10">
+                            <span class="text-amber-400 font-semibold">⚠ Slower</span> for large N (N round trips)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500 font-bold">3</div>
+                        <div><h3 class="font-bold text-lg">Transaction</h3><p class="text-xs text-slate-500">All-or-nothing atomicity</p></div>
+                    </div>
+                    <div class="code-block mb-4">
+                        <pre><code class="language-sql">BEGIN;
+  Query 1;
+  Query 2;
+  ...
+  Query N;
+COMMIT;   -- only if ALL succeeded
+ROLLBACK; -- if ANY failed</code></pre>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                        <div class="p-3 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
+                            <span class="text-emerald-400 font-semibold">✓ Atomic</span> — partial success is impossible
+                        </div>
+                        <div class="p-3 bg-amber-500/5 rounded-lg border border-amber-500/10">
+                            <span class="text-amber-400 font-semibold">⚠ Slower</span> — trades speed for correctness
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-purple-500/5 rounded-lg border border-purple-500/10">
+                        <p class="text-purple-400 text-xs font-semibold">Use for: Invoice + line items, financial ledgers — any case where partial writes corrupt data</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 info-box p-6 rounded-r-2xl">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="info" class="w-6 h-6 text-blue-400 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h4 class="text-blue-400 font-bold mb-1">Production Note</h4>
+                        <p class="text-slate-300 text-sm">Even "Single Query" batching does not give you true bulk-COPY-level performance. For truly massive loads (tens of thousands of rows), production engineers sometimes use a manually constructed multi-row <code class="bg-slate-800 px-1 rounded">INSERT ... VALUES (...), (...), (...)</code> via Execute Query, or an external ETL step.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 04: Upsert -->
+    <section id="section4" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 04</div>
+            <h2 class="text-4xl font-bold mb-4">Upsert — Insert or Update, Correctly</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">The Upsert operation requires you to specify which column(s) define uniqueness. Under the hood, this maps to Postgres's native ON CONFLICT clause.</p>
+
+            <div class="glass-card p-8">
+                <div class="code-block mb-6">
+                    <div class="code-header"><span class="text-xs text-slate-400">postgres-upsert.sql</span></div>
+                    <pre><code class="language-sql">INSERT INTO customers (customer_id, full_name, email)
+VALUES ($1, $2, $3)
+ON CONFLICT (customer_id)
+DO UPDATE SET
+  full_name = EXCLUDED.full_name,
+  email = EXCLUDED.email;</code></pre>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="p-4 bg-slate-800/50 rounded-xl">
+                        <h4 class="font-bold text-emerald-400 mb-2 flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> ON CONFLICT</h4>
+                        <p class="text-sm text-slate-400">Tells Postgres: "if a row with this customer_id already exists, don't error — update it instead."</p>
+                    </div>
+                    <div class="p-4 bg-slate-800/50 rounded-xl">
+                        <h4 class="font-bold text-blue-400 mb-2 flex items-center gap-2"><i data-lucide="arrow-right-circle" class="w-4 h-4"></i> EXCLUDED</h4>
+                        <p class="text-sm text-slate-400">Refers to the row that would have been inserted, letting you pull its values into the update.</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 warning-box p-6 rounded-r-2xl">
+                    <div class="flex items-start gap-4">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 mt-1 flex-shrink-0"></i>
+                        <div>
+                            <h4 class="text-red-400 font-bold mb-1">Requirement</h4>
+                            <p class="text-slate-300 text-sm">This only works if <code class="bg-slate-800 px-1 rounded">customer_id</code> has a <strong>unique constraint or index</strong> at the database level. Upsert cannot function on a column with no uniqueness guarantee — Postgres has no way to detect "conflict" otherwise.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 grid md:grid-cols-2 gap-6">
+                <div class="glass-card p-6">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-purple">Upsert</span></div>
+                    <p class="text-sm text-slate-400 mb-3">Insert if new, Update if exists. Use when the incoming data may contain both new and existing records.</p>
+                    <div class="text-xs text-slate-500">Example: CRM sync — 5,000 contacts, some new, most already exist.</div>
+                </div>
+                <div class="glass-card p-6">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-blue">Skip on Conflict</span></div>
+                    <p class="text-sm text-slate-400 mb-3">Lighter-weight alternative. If a row violates a unique constraint, silently skip it instead of throwing an error.</p>
+                    <div class="text-xs text-slate-500">Example: Preventing duplicate charges — never insert the same order_id twice.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 05: Mid-Batch Failure -->
+    <section id="section5" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 05 — Critical</div>
+            <h2 class="text-4xl font-bold mb-4">What Happens When a Write Fails Mid-Batch</h2>
+            <p class="text-slate-400 mb-8 max-w-2xl">Suppose 1,000 customer records are being inserted, and record #612 violates a unique constraint on email. Here is the exact failure state for each batching mode.</p>
+
+            <div class="space-y-6">
+                <div class="glass-card p-6 border-l-4 border-emerald-500">
+                    <h4 class="font-bold text-emerald-400 mb-3 flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4"></i> Independently + Continue on Fail</h4>
+                    <ul class="text-sm text-slate-400 space-y-2">
+                        <li>• Records <strong class="text-white">1–611</strong> → committed individually, exist and are safe</li>
+                        <li>• Record <strong class="text-red-400">612</strong> → fails, marked with error in output</li>
+                        <li>• Records <strong class="text-white">613–1000</strong> → still attempted, each succeeds or fails on its own</li>
+                    </ul>
+                    <div class="mt-3 p-2 bg-emerald-500/5 rounded-lg border border-emerald-500/10 text-xs text-emerald-400">Best for: Batch processing where partial success is acceptable</div>
+                </div>
+
+                <div class="glass-card p-6 border-l-4 border-blue-500">
+                    <h4 class="font-bold text-blue-400 mb-3 flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4"></i> Single Query</h4>
+                    <ul class="text-sm text-slate-400 space-y-2">
+                        <li>• Combined query may fail as a whole</li>
+                        <li>• Potentially rejects the <strong class="text-red-400">entire batch</strong> rather than just record 612</li>
+                        <li>• Behavior depends on how the query was constructed</li>
+                    </ul>
+                    <div class="mt-3 p-2 bg-blue-500/5 rounded-lg border border-blue-500/10 text-xs text-blue-400">Best for: Speed when all items are known-good</div>
+                </div>
+
+                <div class="glass-card p-6 border-l-4 border-purple-500">
+                    <h4 class="font-bold text-purple-400 mb-3 flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4"></i> Transaction</h4>
+                    <ul class="text-sm text-slate-400 space-y-2">
+                        <li>• Postgres automatically issues <strong class="text-white">ROLLBACK</strong></li>
+                        <li>• <strong class="text-red-400">None</strong> of the 1,000 rows are committed</li>
+                        <li>• Database is left exactly as it was before execution started</li>
+                    </ul>
+                    <div class="mt-3 p-2 bg-purple-500/5 rounded-lg border border-purple-500/10 text-xs text-purple-400">Best for: Financial data, invoices — any case where partial writes corrupt state</div>
+                </div>
+            </div>
+
+            <div class="mt-8 grid md:grid-cols-3 gap-6">
+                <div class="glass-card p-5">
+                    <div class="flex items-center gap-2 mb-3"><i data-lucide="skip-forward" class="w-4 h-4 text-blue-400"></i><h4 class="font-bold text-sm">Skip on Conflict</h4></div>
+                    <p class="text-xs text-slate-400">Database silently ignores duplicate row and continues. No error propagates to n8n.</p>
+                </div>
+                <div class="glass-card p-5">
+                    <div class="flex items-center gap-2 mb-3"><i data-lucide="git-branch" class="w-4 h-4 text-emerald-400"></i><h4 class="font-bold text-sm">Continue on Fail</h4></div>
+                    <p class="text-xs text-slate-400">Record 612 marked as failed, but records 613–1000 still get attempted.</p>
+                </div>
+                <div class="glass-card p-5">
+                    <div class="flex items-center gap-2 mb-3"><i data-lucide="refresh-cw" class="w-4 h-4 text-purple-400"></i><h4 class="font-bold text-sm">Upsert Instead</h4></div>
+                    <p class="text-xs text-slate-400">If the "duplicate" should update existing record, Upsert removes the failure mode entirely.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 06: Real-World Scenarios -->
+    <section id="section6" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 06</div>
+            <h2 class="text-4xl font-bold mb-4">Real-World Production Patterns</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">Five scenarios where the difference between a hobbyist and a consultant is sharpest.</p>
+
+            <div class="space-y-6">
+                <div class="glass-card p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 flex-shrink-0"><i data-lucide="users" class="w-5 h-5"></i></div>
+                        <div>
+                            <h4 class="font-bold mb-1">CRM Sync — 5,000 Contacts Daily</h4>
+                            <p class="text-sm text-slate-400">Some brand-new, most already exist. <strong class="text-purple-400">Upsert</strong> keyed on email handles both cases in a single operation, correctly, every time.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 flex-shrink-0"><i data-lucide="receipt" class="w-5 h-5"></i></div>
+                        <div>
+                            <h4 class="font-bold mb-1">Financial Ledger Integrity</h4>
+                            <p class="text-sm text-slate-400">12 related rows (invoice + line items) must be atomic. <strong class="text-purple-400">Transaction</strong> batching: if any row fails, none are written.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 flex-shrink-0"><i data-lucide="credit-card" class="w-5 h-5"></i></div>
+                        <div>
+                            <h4 class="font-bold mb-1">Preventing Duplicate Charges</h4>
+                            <p class="text-sm text-slate-400">Webhook fires twice due to network retry. <strong class="text-blue-400">Unique constraint + Skip on Conflict</strong> makes duplication structurally impossible.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0"><i data-lucide="shield-alert" class="w-5 h-5"></i></div>
+                        <div>
+                            <h4 class="font-bold mb-1">Security Incident Prevention</h4>
+                            <p class="text-sm text-slate-400">Support-ticket intake takes free-text customer input. <strong class="text-emerald-400">Parameterization</strong> eliminates SQL injection entirely — not just "unlikely."</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-500 flex-shrink-0"><i data-lucide="bar-chart-3" class="w-5 h-5"></i></div>
+                        <div>
+                            <h4 class="font-bold mb-1">Nightly Reconciliation — 50,000 Rows</h4>
+                            <p class="text-sm text-slate-400">Single malformed row must not kill the other 49,999. <strong class="text-emerald-400">Independently + Continue on Fail</strong> isolates failures per-item.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 07: Competitive Edge -->
+    <section id="section7" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 07</div>
+            <h2 class="text-4xl font-bold mb-4">The 90% vs The 10%</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">Anyone can wire up an Insert node. Very few n8n users can explain why a raw string-interpolated query is a liability.</p>
+
+            <div class="glass-card overflow-hidden">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>The 90% (Button-Clickers)</th>
+                            <th>The 10% (You After Today)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Builds queries with <code class="text-red-400">SELECT * FROM users WHERE email = '${$json.email}'</code></td>
+                            <td class="text-emerald-400">Uses <code class="text-emerald-400">$1/$2</code> parameterized queries — immune to injection regardless of input content</td>
+                        </tr>
+                        <tr>
+                            <td>Uses "Insert" for everything, hits duplicate-key errors constantly</td>
+                            <td class="text-emerald-400">Chooses Insert / Upsert / Update deliberately based on whether the record may already exist</td>
+                        </tr>
+                        <tr>
+                            <td>Never touches Query Batching — leaves it at the surprising default</td>
+                            <td class="text-emerald-400">Selects Single Query, Independently, or Transaction based on whether partial failure is acceptable</td>
+                        </tr>
+                        <tr>
+                            <td>One bad row kills a 10,000-row nightly sync</td>
+                            <td class="text-emerald-400">Configures Skip on Conflict or per-item isolation so one bad row doesn't take down the batch</td>
+                        </tr>
+                        <tr>
+                            <td>Doesn't know what ON CONFLICT does</td>
+                            <td class="text-emerald-400">Can read and write native Postgres upsert SQL from memory</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 08: Quiz -->
+    <section id="section8" class="relative z-10 py-20 px-4">
+        <div class="max-w-3xl mx-auto">
+            <div class="section-badge">Section 08 — Quiz</div>
+            <h2 class="text-4xl font-bold mb-4">Test Your Understanding</h2>
+            <p class="text-slate-400 mb-8">Three quick questions testing deep comprehension of database operations.</p>
+
+            <div class="space-y-6" id="quiz-container">
+                <div class="glass-card p-6 quiz-item" data-answer="b">
+                    <h4 class="font-bold mb-4 text-sm">1. A workflow receives user input via webhook and queries the database. Which pattern is safe?</h4>
+                    <div class="space-y-3">
+                        <div class="quiz-option" onclick="selectOption(this, 'a', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><code class="text-sm">SELECT * FROM users WHERE email = '{{ $json.email }}'</code></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'b', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><code class="text-sm">SELECT * FROM users WHERE email = $1</code> with Query Parameters</div>
+                        <div class="quiz-option" onclick="selectOption(this, 'c', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><code class="text-sm">SELECT * FROM users WHERE email = '${$json.email}'</code> in Code node</div>
+                        <div class="quiz-option" onclick="selectOption(this, 'd', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">All of the above are equally safe</span></div>
+                    </div>
+                    <div class="quiz-feedback mt-4 hidden text-sm"></div>
+                </div>
+
+                <div class="glass-card p-6 quiz-item" data-answer="c">
+                    <h4 class="font-bold mb-4 text-sm">2. You must write 12 related rows (invoice + line items) as one atomic unit. Which batching mode?</h4>
+                    <div class="space-y-3">
+                        <div class="quiz-option" onclick="selectOption(this, 'a', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Single Query — fastest performance</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'b', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Independently — each item isolated</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'c', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Transaction — all-or-nothing atomicity</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'd', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Skip on Conflict — ignore failures</span></div>
+                    </div>
+                    <div class="quiz-feedback mt-4 hidden text-sm"></div>
+                </div>
+
+                <div class="glass-card p-6 quiz-item" data-answer="b">
+                    <h4 class="font-bold mb-4 text-sm">3. Record #500 fails in a 1,000-row Transaction batch. What happens to records 1–499?</h4>
+                    <div class="space-y-3">
+                        <div class="quiz-option" onclick="selectOption(this, 'a', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Records 1–499 are committed, 500 fails, 501–1000 never attempted</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'b', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Postgres issues ROLLBACK — none of the 1,000 rows are committed</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'c', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Only record #500 is skipped, the rest continue normally</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'd', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Records 1–499 are committed, 500 is marked failed, 501–1000 are rolled back</span></div>
+                    </div>
+                    <div class="quiz-feedback mt-4 hidden text-sm"></div>
+                </div>
+            </div>
+
+            <div id="quiz-result" class="mt-8 text-center hidden">
+                <div class="text-5xl font-bold text-emerald-400 mb-2" id="score-display">0/3</div>
+                <p class="text-slate-400" id="score-message">Keep studying!</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="relative z-10 py-12 px-4 border-t border-slate-800">
+        <div class="max-w-6xl mx-auto text-center">
+            <p class="text-slate-600 text-sm">n8n Database Operations — Day 6 — Building Production Workflows</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        function scrollToSection(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+        const sections = ['hero','section1','section2','section3','section4','section5','section6','section7','section8'];
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(s => { const el = document.getElementById(s); if(el){ const r = el.getBoundingClientRect(); if(r.top <= window.innerHeight/2) current = s; }});
+            document.querySelectorAll('.nav-dot').forEach((d,i) => d.classList.toggle('active', sections[i] === current));
+        });
+
+        const quizAnswers = {};
+        function selectOption(el, val, qNum) {
+            const item = el.closest('.quiz-item');
+            const correct = item.dataset.answer;
+            const opts = item.querySelectorAll('.quiz-option');
+            const fb = item.querySelector('.quiz-feedback');
+            if(quizAnswers[qNum]) return;
+            quizAnswers[qNum] = val;
+            opts.forEach(o => { o.style.pointerEvents = 'none'; });
+            if(val === correct) {
+                el.classList.add('correct');
+                el.querySelector('.option-indicator').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                el.querySelector('.option-indicator').classList.add('border-emerald-500');
+                fb.textContent = '✓ Correct!'; fb.classList.remove('hidden','text-red-400'); fb.classList.add('text-emerald-400');
+            } else {
+                el.classList.add('wrong');
+                el.querySelector('.option-indicator').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-red-500"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                el.querySelector('.option-indicator').classList.add('border-red-500');
+                opts.forEach(o => { if(o.onclick.toString().includes("'"+correct+"'")) { o.classList.add('correct'); const ind = o.querySelector('.option-indicator'); ind.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><polyline points="20 6 9 17 4 12"></polyline></svg>'; ind.classList.add('border-emerald-500'); }});
+                fb.textContent = '✗ Wrong. Correct answer highlighted.'; fb.classList.remove('hidden','text-emerald-400'); fb.classList.add('text-red-400');
+            }
+            checkAll();
+        }
+        function checkAll() {
+            if(Object.keys(quizAnswers).length === 3) {
+                const correct = Object.values(quizAnswers).filter((v,i) => v === ['b','c','b'][i]).length;
+                document.getElementById('quiz-result').classList.remove('hidden');
+                document.getElementById('quiz-result').classList.add('animate-in');
+                document.getElementById('score-display').textContent = correct + '/3';
+                document.getElementById('score-message').textContent = correct === 3 ? 'Perfect! You fully understood the lecture.' : correct === 2 ? 'Good! One more to perfect.' : 'Keep studying the material!';
+            }
+        }
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if(e.isIntersecting){ e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; } });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.glass-card').forEach(el => { el.style.opacity='0'; el.style.transform='translateY(20px)'; el.style.transition='opacity 0.6s ease-out, transform 0.6s ease-out'; observer.observe(el); });
+    </script>
+</body>
+</html>
