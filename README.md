@@ -22,7 +22,7 @@ n8n-engineering-guide/
 │   ├── day-01.html         # Day 1: Architecture & Installation
 │   ├── day-02.html         # Day 2: Triggers Deep Dive
 │   ├── day-03.html         # Day 3: Automation Fundamentals & n8n Architecture
-│   ├── day-04.html         # Day 4: Error Handling & Debugging
+│   ├── day-04.html         # Day 4: Data Manipulation & Transformation
 │   ├── day-05.html         # Day 5: HTTP Requests & APIs
 │   └── day-06.html         # Day 6: Databases & Storage
 └── README.md
@@ -35,7 +35,7 @@ n8n-engineering-guide/
 | 01 | Architecture & Installation | ✅ Ready |
 | 02 | Triggers Deep Dive | ✅ Ready |
 | 03 | Automation Fundamentals & n8n Architecture | ✅ Ready |
-| 04 | Error Handling & Debugging | ✅ Ready |
+| 04 | Data Manipulation & Transformation | ✅ Ready |
 | 05 | HTTP Requests & APIs | ✅ Ready |
 | 06 | Databases & Storage | ✅ Ready |
 
