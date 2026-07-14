@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day 5 — HTTP Request Node Mastery | n8n Deep Dive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-http.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0c0f;
+            --bg-secondary: #111318;
+            --bg-card: #161922;
+            --border-color: #1e2129;
+            --accent-orange: #f59e0b;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-red: #ef4444;
+            --accent-cyan: #06b6d4;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+        }
+        * { font-family: 'Inter', sans-serif; }
+        code, pre { font-family: 'JetBrains Mono', monospace !important; font-size: 13px !important; }
+        body { background-color: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        .gradient-orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: 0.12; pointer-events: none; z-index: 0; }
+        .orb-1 { top: -10%; right: -10%; width: 600px; height: 600px; background: var(--accent-orange); }
+        .orb-2 { bottom: -10%; left: -10%; width: 700px; height: 700px; background: var(--accent-blue); }
+        .orb-3 { top: 40%; left: 40%; width: 500px; height: 500px; background: var(--accent-purple); opacity: 0.06; }
+        .glass-card {
+            background: rgba(22, 25, 34, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .section-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--accent-orange); font-size: 0.75rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1rem;
+        }
+        .section-badge::before { content: ""; display: block; width: 24px; height: 2px; background: var(--accent-orange); }
+        .code-block {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 12px; overflow: hidden;
+        }
+        .code-header {
+            background: #161b22; border-bottom: 1px solid #21262d; padding: 12px 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .code-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot-red { background: #ff5f56; } .dot-yellow { background: #ffbd2e; } .dot-green { background: #27c93f; }
+        .warning-box {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+            border-left: 3px solid var(--accent-red); border-radius: 0 12px 12px 0;
+        }
+        .info-box {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+            border-left: 3px solid var(--accent-blue); border-radius: 0 12px 12px 0;
+        }
+        .quiz-option {
+            background: rgba(30, 33, 41, 0.6); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .quiz-option:hover { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+        .quiz-option.correct { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.1); }
+        .quiz-option.wrong { border-color: var(--accent-red); background: rgba(239, 68, 68, 0.1); }
+        .custom-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .custom-table th {
+            background: rgba(30, 33, 41, 0.8); padding: 14px; text-align: left;
+            font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .custom-table td { padding: 14px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.9rem; }
+        .custom-table tr:hover td { background: rgba(30, 33, 41, 0.4); }
+        .pill {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .pill-orange { background: rgba(245, 158, 11, 0.15); color: var(--accent-orange); }
+        .pill-green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .pill-blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+        .pill-red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+        .pill-purple { background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); }
+        .pill-cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); }
+        .pill-amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-orange); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; } .delay-4 { animation-delay: 0.4s; }
+        .nav-dots { position: fixed; right: 24px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; z-index: 50; }
+        .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: #334155; cursor: pointer; transition: all 0.3s; }
+        .nav-dot.active { background: var(--accent-orange); transform: scale(1.3); }
+        .method-card { border-top: 3px solid transparent; }
+        .method-get { border-color: var(--accent-green); }
+        .method-post { border-color: var(--accent-blue); }
+        .method-put { border-color: var(--accent-orange); }
+        .method-patch { border-color: var(--accent-purple); }
+        .method-delete { border-color: var(--accent-red); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+    <div class="gradient-orb orb-1"></div>
+    <div class="gradient-orb orb-2"></div>
+    <div class="gradient-orb orb-3"></div>
+
+    <div class="nav-dots hidden md:flex">
+        <div class="nav-dot active" onclick="scrollToSection('hero')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section1')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section2')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section3')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section4')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section5')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section6')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section7')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section8')"></div>
+    </div>
+
+    <!-- Hero -->
+    <section id="hero" class="relative z-10 min-h-screen flex items-center justify-center px-4 py-20">
+        <div class="max-w-5xl mx-auto text-center">
+            <div class="animate-in">
+                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-semibold mb-8">
+                    <i data-lucide="globe" class="w-4 h-4"></i>
+                    Day 5 — HTTP Request Node Mastery
+                </span>
+            </div>
+            <h1 class="animate-in delay-1 text-5xl md:text-7xl font-bold mb-6 leading-tight">
+                REST APIs, Auth,<br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400">
+                    Pagination & Error Handling
+                </span>
+            </h1>
+            <p class="animate-in delay-2 text-lg text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed">
+                An interactive visual reference covering the HTTP Request node at the protocol level — from axios internals to credential injection, TLS, and production-grade error handling.
+            </p>
+            <div class="animate-in delay-3 flex flex-wrap justify-center gap-6 mb-16">
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="shield" class="w-4 h-4 text-blue-500"></i><span>6 Auth Types</span></div>
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="layers" class="w-4 h-4 text-cyan-500"></i><span>5 HTTP Methods</span></div>
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="repeat" class="w-4 h-4 text-emerald-500"></i><span>3 Pagination Modes</span></div>
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="alert-triangle" class="w-4 h-4 text-red-500"></i><span>1 Fatal Bug</span></div>
+            </div>
+            <div class="animate-in delay-4 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-blue-500 mb-2">6</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">Auth Methods</div>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-emerald-400 mb-2">5</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">HTTP Methods</div>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-cyan-400 mb-2">3</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">Pagination Strategies</div>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-purple-400 mb-2">∞</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">APIs Reachable</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 01: Architecture -->
+    <section id="section1" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 01</div>
+            <h2 class="text-4xl font-bold mb-4">HTTP Request — Inside the Engine</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">When the HTTP Request node executes, this exact sequence happens at the Node.js layer. Understanding it separates consultants from button-clickers.</p>
+
+            <div class="glass-card p-8 md:p-12">
+                <div class="grid md:grid-cols-5 gap-4 items-center mb-10">
+                    <div class="text-center"><div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-3 text-amber-500"><span class="font-bold text-lg">1</span></div><div class="text-sm font-semibold">Credential<br>Resolution</div></div>
+                    <div class="flex justify-center"><i data-lucide="arrow-right" class="w-5 h-5 text-slate-600 hidden md:block"></i></div>
+                    <div class="text-center"><div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-3 text-blue-500"><span class="font-bold text-lg">2</span></div><div class="text-sm font-semibold">Request<br>Building</div></div>
+                    <div class="flex justify-center"><i data-lucide="arrow-right" class="w-5 h-5 text-slate-600 hidden md:block"></i></div>
+                    <div class="text-center"><div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-3 text-emerald-500"><span class="font-bold text-lg">3</span></div><div class="text-sm font-semibold">TLS &<br>Execution</div></div>
+                    <div class="flex justify-center"><i data-lucide="arrow-right" class="w-5 h-5 text-slate-600 hidden md:block"></i></div>
+                    <div class="text-center"><div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-3 text-purple-500"><span class="font-bold text-lg">4</span></div><div class="text-sm font-semibold">Response<br>Processing</div></div>
+                    <div class="flex justify-center"><i data-lucide="arrow-right" class="w-5 h-5 text-slate-600 hidden md:block"></i></div>
+                    <div class="text-center"><div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-3 text-cyan-500"><span class="font-bold text-lg">5</span></div><div class="text-sm font-semibold">Output to<br>Pipeline</div></div>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header"><div class="code-dot dot-red"></div><div class="code-dot dot-yellow"></div><div class="code-dot dot-green"></div><span class="text-xs text-slate-400 ml-2">http-request-engine.js</span></div>
+                    <pre><code class="language-javascript">// 1. CREDENTIAL RESOLUTION
+const credential = await credentials.get('httpHeaderAuth');
+// Decrypted from DB using instance encryption key
+// NEVER appears in workflow JSON or execution logs
+
+// 2. REQUEST BUILDING (axios under the hood)
+const config = {
+  url: 'https://api.stripe.com/v1/customers',
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${credential.token}` // Injected here
+  },
+  data: { name: 'Ahmed', email: 'ahmed@company.com' },
+  timeout: 30000 // Default: none (production risk!)
+};
+
+// 3. TLS/SSL (Node.js tls module)
+// Certificate validation automatic
+// Self-signed certs fail unless "Allow Unauthorized Certs" is ON
+
+// 4. HTTP EXECUTION
+const response = await axios.request(config);
+
+// 5. RESPONSE PROCESSING
+// Status 4xx/5xx → throws error by default
+// Body parsed via JSON.parse if content-type === application/json
+// Output wrapped into n8n items array</code></pre>
+                </div>
+
+                <div class="mt-6 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-start gap-3">
+                    <i data-lucide="lock" class="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0"></i>
+                    <p class="text-sm text-slate-300"><strong class="text-blue-400">Security Guarantee:</strong> API tokens never appear in workflow JSON exports, execution logs, browser URLs, or webhook responses. They live only in the encrypted database record.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 02: HTTP Methods -->
+    <section id="section2" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 02</div>
+            <h2 class="text-4xl font-bold mb-4">HTTP Methods — Protocol Semantics</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">Choosing the wrong method causes confusing API errors. The URL may be correct, but the method is wrong.</p>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass-card p-6 method-card method-get">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="pill pill-green font-mono text-sm">GET</span>
+                        <span class="text-xs text-slate-500">Retrieve</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-3">No body. Idempotent. Calling twice = same result.</p>
+                    <div class="text-xs text-slate-500 space-y-1"><div>• Fetch records</div><div>• Read state</div><div>• Search</div></div>
+                </div>
+                <div class="glass-card p-6 method-card method-post">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="pill pill-blue font-mono text-sm">POST</span>
+                        <span class="text-xs text-slate-500">Create</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-3">Has body. NOT idempotent. Calling twice creates twice.</p>
+                    <div class="text-xs text-slate-500 space-y-1"><div>• Create records</div><div>• Submit forms</div><div>• Trigger actions</div></div>
+                </div>
+                <div class="glass-card p-6 method-card method-put">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="pill pill-orange font-mono text-sm">PUT</span>
+                        <span class="text-xs text-slate-500">Replace</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-3">Full replacement. Idempotent. Omitting a field deletes it.</p>
+                    <div class="text-xs text-slate-500 space-y-1"><div>• Full updates</div><div>• Complete state</div><div>• Overwrite resource</div></div>
+                </div>
+                <div class="glass-card p-6 method-card method-patch">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="pill pill-purple font-mono text-sm">PATCH</span>
+                        <span class="text-xs text-slate-500">Partial</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-3">Partial update. Idempotent. Preferred over PUT.</p>
+                    <div class="text-xs text-slate-500 space-y-1"><div>• Update specific fields</div><div>• Modify status</div><div>• Preferred method</div></div>
+                </div>
+                <div class="glass-card p-6 method-card method-delete">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="pill pill-red font-mono text-sm">DELETE</span>
+                        <span class="text-xs text-slate-500">Remove</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-3">Usually no body. Idempotent. Removes resource.</p>
+                    <div class="text-xs text-slate-500 space-y-1"><div>• Delete records</div><div>• Remove resources</div><div>• Archive data</div></div>
+                </div>
+                <div class="glass-card p-6 border-t-2 border-slate-500">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="pill pill-cyan font-mono text-sm">HEAD</span>
+                        <span class="text-xs text-slate-500">Metadata</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-3">Same as GET but returns only headers. No body.</p>
+                    <div class="text-xs text-slate-500 space-y-1"><div>• Check existence</div><div>• Get metadata</div><div>• CORS preflight</div></div>
+                </div>
+            </div>
+
+            <div class="mt-8 warning-box p-6 rounded-r-2xl">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-red-500 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h4 class="text-red-400 font-bold mb-1">Most Common Mistake</h4>
+                        <p class="text-slate-300 text-sm">Using GET to send data (impossible — GET has no body) or using POST when the API expects PUT/PATCH (API returns 405 Method Not Allowed).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 03: Authentication -->
+    <section id="section3" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 03</div>
+            <h2 class="text-4xl font-bold mb-4">Authentication — Exact HTTP Headers</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">This is the table every n8n engineer must have memorized. The exact header generated by each auth type.</p>
+
+            <div class="glass-card overflow-hidden">
+                <table class="custom-table">
+                    <thead>
+                        <tr><th>Auth Type</th><th>HTTP Header Generated</th><th>Security Notes</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="text-white font-medium">None</td><td><code class="text-slate-400">No auth header</code></td><td>Public APIs only</td></tr>
+                        <tr><td class="text-white font-medium">Bearer Token</td><td><code class="text-emerald-400">Authorization: Bearer &lt;token&gt;</code></td><td>Most common. Note the space after Bearer.</td></tr>
+                        <tr><td class="text-white font-medium">API Key — Header</td><td><code class="text-blue-400">X-API-Key: &lt;key&gt;</code></td><td>Header name varies per API</td></tr>
+                        <tr><td class="text-white font-medium">API Key — Query</td><td><code class="text-amber-400">?api_key=&lt;key&gt;</code> in URL</td><td><span class="text-red-400">Risk:</span> Appears in server logs</td></tr>
+                        <tr><td class="text-white font-medium">Basic Auth</td><td><code class="text-purple-400">Authorization: Basic &lt;base64&gt;</code></td><td>Always use HTTPS. Base64 is reversible.</td></tr>
+                        <tr><td class="text-white font-medium">OAuth2</td><td><code class="text-cyan-400">Authorization: Bearer &lt;access_token&gt;</code></td><td>n8n handles refresh automatically</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-8 grid md:grid-cols-2 gap-6">
+                <div class="code-block">
+                    <div class="code-header"><span class="text-xs text-slate-400">Bearer Token (Stripe, OpenAI)</span></div>
+                    <pre><code class="language-http">GET /v1/customers HTTP/1.1
+Host: api.stripe.com
+Authorization: Bearer sk_live_abc123xyz456
+Content-Type: application/json</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header"><span class="text-xs text-slate-400">Basic Auth (Base64)</span></div>
+                    <pre><code class="language-http">GET /api/data HTTP/1.1
+Host: api.example.com
+Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+
+// btoa("admin:password") 
+// → "YWRtaW46cGFzc3dvcmQ="</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 04: Body Types -->
+    <section id="section4" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 04</div>
+            <h2 class="text-4xl font-bold mb-4">Request Body Types</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">Choosing the wrong body type causes the API to reject your request with cryptic errors.</p>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass-card p-6">
+                    <div class="flex items-center gap-2 mb-4"><i data-lucide="file-json" class="w-5 h-5 text-emerald-500"></i><h3 class="font-bold">JSON</h3></div>
+                    <div class="code-block mb-4"><pre><code class="language-http">Content-Type: application/json
+
+{"key": "value", "nested": {"field": 42}}</code></pre></div>
+                    <p class="text-xs text-slate-500">Use for: REST APIs (the vast majority)</p>
+                </div>
+                <div class="glass-card p-6">
+                    <div class="flex items-center gap-2 mb-4"><i data-lucide="form-input" class="w-5 h-5 text-amber-500"></i><h3 class="font-bold">Form URL Encoded</h3></div>
+                    <div class="code-block mb-4"><pre><code class="language-http">Content-Type: application/x-www-form-urlencoded
+
+key=value&another=field&number=42</code></pre></div>
+                    <p class="text-xs text-slate-500">Use for: Legacy APIs, OAuth2 token endpoints</p>
+                </div>
+                <div class="glass-card p-6">
+                    <div class="flex items-center gap-2 mb-4"><i data-lucide="paperclip" class="w-5 h-5 text-purple-500"></i><h3 class="font-bold">Multipart</h3></div>
+                    <div class="code-block mb-4"><pre><code class="language-http">Content-Type: multipart/form-data
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"</code></pre></div>
+                    <p class="text-xs text-slate-500">Use for: File uploads (binary data)</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 05: Full Response Bug -->
+    <section id="section5" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 05 — Critical</div>
+            <h2 class="text-4xl font-bold mb-4">The Full Response Toggle</h2>
+            <p class="text-slate-400 mb-8 max-w-2xl">The equivalent of the webhook $json.body bug from Day 2, but for the HTTP Request node. The most commonly misunderstood setting.</p>
+
+            <div class="warning-box p-8 rounded-r-2xl mb-8">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="skull" class="w-6 h-6 text-red-500 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h3 class="text-red-400 font-bold text-lg mb-2">When Full Response is ON, data is nested under $json.body</h3>
+                        <p class="text-slate-300 leading-relaxed text-sm">With Full Response OFF: <code class="bg-slate-800 px-1 rounded">{{ $json.id }}</code> works. With Full Response ON: <code class="bg-slate-800 px-1 rounded">{{ $json.body.id }}</code> is required. Confusing them is a frequent production bug.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass-card p-6">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-green">Full Response: OFF</span></div>
+                    <div class="code-block">
+                        <div class="code-header"><span class="text-xs text-slate-400">Default output</span></div>
+                        <pre><code class="language-json">[
+  {
+    "json": {
+      "id": 1,
+      "name": "Ahmed",
+      "email": "ahmed@company.com"
+    }
+  }
+]</code></pre>
+                    </div>
+                    <div class="mt-4 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20"><code class="text-emerald-400 text-sm">{{ $json.id }}</code><span class="text-slate-500 text-sm"> ← Works</span></div>
+                </div>
+                <div class="glass-card p-6">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-orange">Full Response: ON</span></div>
+                    <div class="code-block">
+                        <div class="code-header"><span class="text-xs text-slate-400">Wrapped output</span></div>
+                        <pre><code class="language-json">[
+  {
+    "json": {
+      "statusCode": 200,
+      "headers": {
+        "x-ratelimit-remaining": "98"
+      },
+      "body": {
+        "id": 1,
+        "name": "Ahmed"
+      }
+    }
+  }
+]</code></pre>
+                    </div>
+                    <div class="mt-4 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20"><code class="text-amber-400 text-sm">{{ $json.body.id }}</code><span class="text-slate-500 text-sm"> ← Required</span></div>
+                </div>
+            </div>
+
+            <div class="mt-8 info-box p-6 rounded-r-2xl">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="lightbulb" class="w-6 h-6 text-blue-400 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h4 class="text-blue-400 font-bold mb-1">When to use Full Response ON</h4>
+                        <ul class="text-sm text-slate-300 space-y-1 mt-2">
+                            <li>• API returns important data in headers (rate limits, pagination cursors)</li>
+                            <li>• You need to check HTTP status code downstream</li>
+                            <li>• Handle different responses based on status (200 vs 201 vs 204)</li>
+                            <li>• Debugging — seeing the full response including headers</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 06: Pagination -->
+    <section id="section6" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 06</div>
+            <h2 class="text-4xl font-bold mb-4">Pagination — Three Built-in Strategies</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">n8n fetches multiple pages and merges all results into a single flat items array. Choose the wrong strategy and you lose records.</p>
+
+            <div class="space-y-6">
+                <div class="glass-card p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-bold">1</div>
+                        <div><h3 class="font-bold text-lg">Offset / Page Number</h3><p class="text-xs text-slate-500">Increment a numeric parameter</p></div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="code-block"><div class="code-header"><span class="text-xs text-slate-400">API Pattern</span></div><pre><code class="language-http">GET /users?page=1&per_page=100
+GET /users?page=2&per_page=100
+GET /users?page=3&per_page=100
+// Stops when response empty or page > total</code></pre></div>
+                        <div class="code-block"><div class="code-header"><span class="text-xs text-slate-400">n8n Config</span></div><pre><code class="language-json">{
+  "pagination": true,
+  "mode": "updateParameter",
+  "parameter": "page",
+  "startValue": 1,
+  "stopCondition": "{{ $response.body.data.length === 0 }}"
+}</code></pre></div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold">2</div>
+                        <div><h3 class="font-bold text-lg">Cursor-Based</h3><p class="text-xs text-slate-500">Extract next cursor from response body</p></div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="code-block"><div class="code-header"><span class="text-xs text-slate-400">API Pattern</span></div><pre><code class="language-http">GET /users
+→ { "data": [...], "pagination": { "next_cursor": "abc123" } }
+
+GET /users?cursor=abc123
+→ { "data": [...], "pagination": { "next_cursor": null } }
+// Stops when next_cursor is null</code></pre></div>
+                        <div class="code-block"><div class="code-header"><span class="text-xs text-slate-400">n8n Config</span></div><pre><code class="language-json">{
+  "pagination": true,
+  "mode": "updateParameter",
+  "parameter": "cursor",
+  "value": "{{ $response.body.pagination.next_cursor }}",
+  "stopCondition": "{{ !$response.body.pagination.has_next }}"
+}</code></pre></div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500 font-bold">3</div>
+                        <div><h3 class="font-bold text-lg">Link Header</h3><p class="text-xs text-slate-500">Extract next URL from response headers</p></div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="code-block"><div class="code-header"><span class="text-xs text-slate-400">API Pattern (GitHub)</span></div><pre><code class="language-http">HTTP/1.1 200 OK
+Link: &lt;https://api.github.com/repos?page=2&gt;; rel="next",
+      &lt;https://api.github.com/repos?page=5&gt;; rel="last"
+
+// Stops when no "next" link in header</code></pre></div>
+                        <div class="code-block"><div class="code-header"><span class="text-xs text-slate-400">n8n Config</span></div><pre><code class="language-json">{
+  "pagination": true,
+  "mode": "responseContainsNextUrl",
+  "nextUrl": "{{ $response.headers.link.match(/&lt;([^&gt;]+)&gt;; rel=\"next\"/)?.[1] }}"
+}</code></pre></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 p-6 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                <div class="flex items-start gap-3">
+                    <i data-lucide="check-circle" class="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0"></i>
+                    <p class="text-sm text-slate-300"><strong class="text-emerald-400">Result:</strong> After pagination completes, the output is a single flat items array containing ALL records from ALL pages — as if they came from one response.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 07: Error Matrix -->
+    <section id="section7" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 07</div>
+            <h2 class="text-4xl font-bold mb-4">Production Error Handling Matrix</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">By default, any 4xx or 5xx stops the workflow. Here is how to handle each status code correctly.</p>
+
+            <div class="glass-card overflow-hidden">
+                <table class="custom-table">
+                    <thead><tr><th>Status</th><th>Meaning</th><th>Strategy</th><th>Why</th></tr></thead>
+                    <tbody>
+                        <tr><td><span class="pill pill-amber">429</span></td><td class="text-white">Too Many Requests</td><td class="text-emerald-400 font-medium">Retry with delay</td><td>Transient — waiting resolves it</td></tr>
+                        <tr><td><span class="pill pill-amber">503</span></td><td class="text-white">Service Unavailable</td><td class="text-emerald-400 font-medium">Retry with delay</td><td>Transient — server will recover</td></tr>
+                        <tr><td><span class="pill pill-red">400</span></td><td class="text-white">Bad Request</td><td class="text-blue-400 font-medium">Continue on Error</td><td>Retrying won't fix bad data</td></tr>
+                        <tr><td><span class="pill pill-red">401</span></td><td class="text-white">Unauthorized</td><td class="text-red-400 font-medium">Alert immediately</td><td>Infrastructure issue — don't retry</td></tr>
+                        <tr><td><span class="pill pill-red">404</span></td><td class="text-white">Not Found</td><td class="text-blue-400 font-medium">Continue on Error</td><td>Record may have been deleted</td></tr>
+                        <tr><td><span class="pill pill-purple">500</span></td><td class="text-white">Internal Server Error</td><td class="text-amber-400 font-medium">Retry once, then alert</td><td>May be transient or permanent</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-8 grid md:grid-cols-3 gap-6">
+                <div class="glass-card p-6">
+                    <h4 class="font-bold text-emerald-400 mb-2 flex items-center gap-2"><i data-lucide="refresh-cw" class="w-4 h-4"></i> Retry on Fail</h4>
+                    <p class="text-sm text-slate-400">Configurable retries with wait interval. Correct for 429, 503, 502, 504. Wrong for 400, 401, 403, 404.</p>
+                </div>
+                <div class="glass-card p-6">
+                    <h4 class="font-bold text-blue-400 mb-2 flex items-center gap-2"><i data-lucide="skip-forward" class="w-4 h-4"></i> Continue on Error</h4>
+                    <p class="text-sm text-slate-400">Marks failed items with error but continues processing. Correct for batch processing where one bad record shouldn't stop 999 good ones.</p>
+                </div>
+                <div class="glass-card p-6">
+                    <h4 class="font-bold text-amber-400 mb-2 flex items-center gap-2"><i data-lucide="git-branch" class="w-4 h-4"></i> Response Code Routing</h4>
+                    <p class="text-sm text-slate-400">Route different status codes to different paths. 200-299 → success. 400-499 → client error. 500-599 → server error.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 08: Quiz -->
+    <section id="section8" class="relative z-10 py-20 px-4">
+        <div class="max-w-3xl mx-auto">
+            <div class="section-badge">Section 08 — Quiz</div>
+            <h2 class="text-4xl font-bold mb-4">Test Your Understanding</h2>
+            <p class="text-slate-400 mb-8">Three quick questions testing deep comprehension of HTTP Request internals.</p>
+
+            <div class="space-y-6" id="quiz-container">
+                <div class="glass-card p-6 quiz-item" data-answer="b">
+                    <h4 class="font-bold mb-4 text-sm">1. You enable "Return Full Response" and the API returns <code>{"id": 99}</code>. What's the correct expression?</h4>
+                    <div class="space-y-3">
+                        <div class="quiz-option" onclick="selectOption(this, 'a', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><code class="text-sm">{{ $json.id }}</code></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'b', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><code class="text-sm">{{ $json.body.id }}</code></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'c', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><code class="text-sm">{{ $json.data.id }}</code></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'd', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><code class="text-sm">{{ $json.response.id }}</code></div>
+                    </div>
+                    <div class="quiz-feedback mt-4 hidden text-sm"></div>
+                </div>
+
+                <div class="glass-card p-6 quiz-item" data-answer="c">
+                    <h4 class="font-bold mb-4 text-sm">2. An API returns 429 Too Many Requests. What's the correct strategy?</h4>
+                    <div class="space-y-3">
+                        <div class="quiz-option" onclick="selectOption(this, 'a', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Continue on Error — the request is wrong</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'b', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Alert immediately — token is expired</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'c', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Retry with delay — rate limit is transient</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'd', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Stop workflow — API is permanently broken</span></div>
+                    </div>
+                    <div class="quiz-feedback mt-4 hidden text-sm"></div>
+                </div>
+
+                <div class="glass-card p-6 quiz-item" data-answer="b">
+                    <h4 class="font-bold mb-4 text-sm">3. Where does n8n store the decrypted API token during execution?</h4>
+                    <div class="space-y-3">
+                        <div class="quiz-option" onclick="selectOption(this, 'a', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">In the workflow JSON export</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'b', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">In memory only — decrypted from DB at runtime</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'c', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">In the browser localStorage</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'd', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">In the execution logs as plain text</span></div>
+                    </div>
+                    <div class="quiz-feedback mt-4 hidden text-sm"></div>
+                </div>
+            </div>
+
+            <div id="quiz-result" class="mt-8 text-center hidden">
+                <div class="text-5xl font-bold text-emerald-400 mb-2" id="score-display">0/3</div>
+                <p class="text-slate-400" id="score-message">Keep studying!</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="relative z-10 py-12 px-4 border-t border-slate-800">
+        <div class="max-w-6xl mx-auto text-center">
+            <p class="text-slate-600 text-sm">n8n HTTP Request Node Mastery — Day 5 — Building Production Workflows</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        function scrollToSection(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+        const sections = ['hero','section1','section2','section3','section4','section5','section6','section7','section8'];
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(s => { const el = document.getElementById(s); if(el){ const r = el.getBoundingClientRect(); if(r.top <= window.innerHeight/2) current = s; }});
+            document.querySelectorAll('.nav-dot').forEach((d,i) => d.classList.toggle('active', sections[i] === current));
+        });
+
+        const quizAnswers = {};
+        function selectOption(el, val, qNum) {
+            const item = el.closest('.quiz-item');
+            const correct = item.dataset.answer;
+            const opts = item.querySelectorAll('.quiz-option');
+            const fb = item.querySelector('.quiz-feedback');
+            if(quizAnswers[qNum]) return;
+            quizAnswers[qNum] = val;
+            opts.forEach(o => { o.style.pointerEvents = 'none'; });
+            if(val === correct) {
+                el.classList.add('correct');
+                el.querySelector('.option-indicator').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                el.querySelector('.option-indicator').classList.add('border-emerald-500');
+                fb.textContent = '✓ Correct!'; fb.classList.remove('hidden','text-red-400'); fb.classList.add('text-emerald-400');
+            } else {
+                el.classList.add('wrong');
+                el.querySelector('.option-indicator').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-red-500"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                el.querySelector('.option-indicator').classList.add('border-red-500');
+                opts.forEach(o => { if(o.onclick.toString().includes("'"+correct+"'")) { o.classList.add('correct'); const ind = o.querySelector('.option-indicator'); ind.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><polyline points="20 6 9 17 4 12"></polyline></svg>'; ind.classList.add('border-emerald-500'); }});
+                fb.textContent = '✗ Wrong. Correct answer highlighted.'; fb.classList.remove('hidden','text-emerald-400'); fb.classList.add('text-red-400');
+            }
+            checkAll();
+        }
+        function checkAll() {
+            if(Object.keys(quizAnswers).length === 3) {
+                const correct = Object.values(quizAnswers).filter((v,i) => v === ['b','c','b'][i]).length;
+                document.getElementById('quiz-result').classList.remove('hidden');
+                document.getElementById('quiz-result').classList.add('animate-in');
+                document.getElementById('score-display').textContent = correct + '/3';
+                document.getElementById('score-message').textContent = correct === 3 ? 'Perfect! You fully understood the lecture.' : correct === 2 ? 'Good! One more to perfect.' : 'Keep studying the material!';
+            }
+        }
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if(e.isIntersecting){ e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; } });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.glass-card').forEach(el => { el.style.opacity='0'; el.style.transform='translateY(20px)'; el.style.transition='opacity 0.6s ease-out, transform 0.6s ease-out'; observer.observe(el); });
+    </script>
+</body>
+</html>
