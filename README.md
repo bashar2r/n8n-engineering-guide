@@ -35,7 +35,7 @@ n8n-engineering-guide/
 | 01 | Architecture & Installation | ✅ Ready |
 | 02 | Triggers Deep Dive | ✅ Ready |
 | 03 | Automation Fundamentals & n8n Architecture | ✅ Ready |
-| 04 | Data Manipulation & Transformation | ✅ Ready |
+| 04 | Data Manipulation & Transformation | ✅ Ready | 
 | 05 | HTTP Requests & APIs | ✅ Ready |
 | 06 | Databases & Storage | ✅ Ready |
 
