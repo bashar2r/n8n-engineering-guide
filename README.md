@@ -37,7 +37,7 @@ n8n-engineering-guide/
 | 03 | Automation Fundamentals & n8n Architecture | ✅ Ready |
 | 04 | Error Handling & Debugging | ✅ Ready |
 | 05 | HTTP Requests & APIs | ✅ Ready |
-| 06 | Databases & Storage | 🔄 Coming |
+| 06 | Databases & Storage | ✅ Ready |
 
 ## 🎨 Design System
 
