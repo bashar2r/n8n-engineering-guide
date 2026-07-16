@@ -24,7 +24,8 @@ n8n-engineering-guide/
 │   ├── day-03.html         # Day 3: Automation Fundamentals & n8n Architecture
 │   ├── day-04.html         # Day 4: Data Manipulation & Transformation
 │   ├── day-05.html         # Day 5: HTTP Requests & APIs
-│   └── day-06.html         # Day 6: Databases & Storage
+│   ├── day-06.html         # Day 6: Databases & Storage
+|   └── day-07.html         # Day 7: Production Error Handling
 └── README.md
 ```
 
