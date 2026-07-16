@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day 7 — Production Error Handling | n8n Deep Dive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0c0f;
+            --bg-secondary: #111318;
+            --bg-card: #161922;
+            --border-color: #1e2129;
+            --accent-orange: #f59e0b;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-red: #ef4444;
+            --accent-amber: #f97316;
+            --accent-rose: #f43f5e;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+        }
+        * { font-family: 'Inter', sans-serif; }
+        code, pre { font-family: 'JetBrains Mono', monospace !important; font-size: 13px !important; }
+        body { background-color: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+        .gradient-orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: 0.12; pointer-events: none; z-index: 0; }
+        .orb-1 { top: -10%; right: -10%; width: 600px; height: 600px; background: var(--accent-red); }
+        .orb-2 { bottom: -10%; left: -10%; width: 700px; height: 700px; background: var(--accent-amber); }
+        .orb-3 { top: 40%; left: 40%; width: 500px; height: 500px; background: var(--accent-rose); opacity: 0.06; }
+        .glass-card {
+            background: rgba(22, 25, 34, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(239, 68, 68, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .section-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--accent-orange); font-size: 0.75rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1rem;
+        }
+        .section-badge::before { content: ""; display: block; width: 24px; height: 2px; background: var(--accent-orange); }
+        .code-block {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 12px; overflow: hidden;
+        }
+        .code-header {
+            background: #161b22; border-bottom: 1px solid #21262d; padding: 12px 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .code-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot-red { background: #ff5f56; } .dot-yellow { background: #ffbd2e; } .dot-green { background: #27c93f; }
+        .warning-box {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+            border-left: 3px solid var(--accent-red); border-radius: 0 12px 12px 0;
+        }
+        .info-box {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+            border-left: 3px solid var(--accent-blue); border-radius: 0 12px 12px 0;
+        }
+        .success-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            border-left: 3px solid var(--accent-green); border-radius: 0 12px 12px 0;
+        }
+        .quiz-option {
+            background: rgba(30, 33, 41, 0.6); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .quiz-option:hover { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+        .quiz-option.correct { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.1); }
+        .quiz-option.wrong { border-color: var(--accent-red); background: rgba(239, 68, 68, 0.1); }
+        .custom-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .custom-table th {
+            background: rgba(30, 33, 41, 0.8); padding: 14px; text-align: left;
+            font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .custom-table td { padding: 14px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.9rem; }
+        .custom-table tr:hover td { background: rgba(30, 33, 41, 0.4); }
+        .pill {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .pill-orange { background: rgba(245, 158, 11, 0.15); color: var(--accent-orange); }
+        .pill-green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .pill-blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+        .pill-red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+        .pill-purple { background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); }
+        .pill-amber { background: rgba(249, 115, 22, 0.15); color: var(--accent-amber); }
+        .pill-rose { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; } .delay-4 { animation-delay: 0.4s; }
+        .nav-dots { position: fixed; right: 24px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; z-index: 50; }
+        .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: #334155; cursor: pointer; transition: all 0.3s; }
+        .nav-dot.active { background: var(--accent-orange); transform: scale(1.3); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+    <div class="gradient-orb orb-1"></div>
+    <div class="gradient-orb orb-2"></div>
+    <div class="gradient-orb orb-3"></div>
+
+    <div class="nav-dots hidden md:flex">
+        <div class="nav-dot active" onclick="scrollToSection('hero')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section1')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section2')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section3')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section4')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section5')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section6')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section7')"></div>
+        <div class="nav-dot" onclick="scrollToSection('section8')"></div>
+    </div>
+
+    <!-- Hero -->
+    <section id="hero" class="relative z-10 min-h-screen flex items-center justify-center px-4 py-20">
+        <div class="max-w-5xl mx-auto text-center">
+            <div class="animate-in">
+                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold mb-8">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                    Day 7 — Production Error Handling
+                </span>
+            </div>
+            <h1 class="animate-in delay-1 text-5xl md:text-7xl font-bold mb-6 leading-tight">
+                Error Workflows,<br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-400 to-orange-400">
+                    Triggers & Retry-Safety
+                </span>
+            </h1>
+            <p class="animate-in delay-2 text-lg text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed">
+                An interactive visual reference covering n8n's error architecture at the workflow level — from On Error modes to Error Workflows, Stop And Error, and idempotent design.
+            </p>
+            <div class="animate-in delay-3 flex flex-wrap justify-center gap-6 mb-16">
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="alert-octagon" class="w-4 h-4 text-red-500"></i><span>3 On Error Modes</span></div>
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="bell" class="w-4 h-4 text-amber-500"></i><span>Error Workflows</span></div>
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="refresh-cw" class="w-4 h-4 text-orange-500"></i><span>Retry Gotchas</span></div>
+                <div class="flex items-center gap-2 text-slate-400 text-sm"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i><span>Idempotency</span></div>
+            </div>
+            <div class="animate-in delay-4 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-red-500 mb-2">3</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">On Error Modes</div>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-amber-400 mb-2">1</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">Silent Gotcha</div>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-orange-400 mb-2">∞</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">Error Workflows</div>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <div class="text-3xl font-bold text-emerald-400 mb-2">2x</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wider">Safe to Retry</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 01: Three On Error Modes -->
+    <section id="section1" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 01</div>
+            <h2 class="text-4xl font-bold mb-4">The Three "On Error" Modes</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">Every node in n8n has an On Error setting with exactly three options. Choosing the wrong one silently changes your workflow's failure behavior.</p>
+
+            <div class="space-y-6">
+                <div class="glass-card p-8 border-l-4 border-red-500">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="pill pill-red font-mono">STOP WORKFLOW</span>
+                        <span class="text-xs text-slate-500">Default</span>
+                    </div>
+                    <ul class="text-sm text-slate-400 space-y-2">
+                        <li>• Halts the entire workflow the instant this node errors</li>
+                        <li>• No further nodes execute</li>
+                        <li>• Execution status becomes <code class="text-red-400">ERROR</code></li>
+                        <li>• If an Error Workflow is configured, it fires</li>
+                    </ul>
+                    <div class="mt-4 p-3 bg-red-500/5 rounded-lg border border-red-500/10 text-xs text-red-400">Use when: Any failure is unacceptable — financial transactions, critical API calls</div>
+                </div>
+
+                <div class="glass-card p-8 border-l-4 border-amber-500">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="pill pill-amber font-mono">CONTINUE</span>
+                        <span class="text-xs text-slate-500">Least Safe</span>
+                    </div>
+                    <ul class="text-sm text-slate-400 space-y-2">
+                        <li>• Proceeds to the next node despite the error</li>
+                        <li>• Uses the <strong class="text-white">LAST VALID DATA</strong> — stale/unchanged</li>
+                        <li>• No visible marker that anything went wrong downstream</li>
+                        <li>• Failures become <span class="text-red-400">invisible</span></li>
+                    </ul>
+                    <div class="mt-4 p-3 bg-amber-500/5 rounded-lg border border-amber-500/10 text-xs text-amber-400">⚠ Dangerous: Silent data corruption. Use only when you explicitly track failures downstream.</div>
+                </div>
+
+                <div class="glass-card p-8 border-l-4 border-emerald-500">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="pill pill-green font-mono">CONTINUE (ERROR OUTPUT)</span>
+                        <span class="text-xs text-slate-500">Production Choice</span>
+                    </div>
+                    <ul class="text-sm text-slate-400 space-y-2">
+                        <li>• Node gains a <strong class="text-white">SECOND output connector</strong> (error output)</li>
+                        <li>• Failed items routed there instead of crashing</li>
+                        <li>• Successful items → normal output; failed items → error output</li>
+                        <li>• Wire each to different logic</li>
+                    </ul>
+                    <div class="mt-4 p-3 bg-emerald-500/5 rounded-lg border border-emerald-500/10 text-xs text-emerald-400">Use when: One bad row shouldn't kill 999 good ones — batch processing, data pipelines</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 02: Retry Gotcha -->
+    <section id="section2" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 02 — Critical</div>
+            <h2 class="text-4xl font-bold mb-4">The Retry On Fail Gotcha</h2>
+            <p class="text-slate-400 mb-8 max-w-2xl">Today's equivalent of Day 2's $json.body and Day 5's parameterized queries — the mistake that looks fine in testing and fails invisibly in production.</p>
+
+            <div class="warning-box p-8 rounded-r-2xl mb-8">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="skull" class="w-6 h-6 text-red-500 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h3 class="text-red-400 font-bold text-lg mb-2">Retry On Fail is silently bypassed unless On Error = "Stop Workflow"</h3>
+                        <p class="text-slate-300 leading-relaxed text-sm">If you set On Error to <code class="bg-red-500/20 text-red-300 px-2 py-0.5 rounded">Continue</code> or <code class="bg-red-500/20 text-red-300 px-2 py-0.5 rounded">Continue (error output)</code> — the retry counter can be bypassed entirely. The node fails once, immediately routes to the error path or continues, and <strong class="text-white">never attempts try #2 or #3</strong>, even though the UI shows "3 tries" configured.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass-card p-6 border-t-2 border-red-500">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-red">SILENTLY BROKEN</span></div>
+                    <div class="code-block">
+                        <div class="code-header"><span class="text-xs text-slate-400">node-config.json</span></div>
+                        <pre><code class="language-json">{
+  "retryOnFail": true,
+  "maxTries": 3,
+  "waitBetweenTries": 2000,
+  "onError": "continueErrorOutput"
+  // ↑ Retry is BYPASSED — attempts 2 & 3 NEVER happen
+}</code></pre>
+                    </div>
+                    <div class="mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                        <p class="text-red-400 text-sm font-semibold">What happens:</p>
+                        <p class="text-slate-500 text-xs mt-1">Attempt 1 fails → routes to error output immediately → Attempts 2 & 3 never happen</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 border-t-2 border-emerald-500">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-green">CORRECT</span></div>
+                    <div class="code-block">
+                        <div class="code-header"><span class="text-xs text-slate-400">node-config.json</span></div>
+                        <pre><code class="language-json">{
+  "retryOnFail": true,
+  "maxTries": 3,
+  "waitBetweenTries": 2000,
+  "onError": "stopWorkflow"
+  // ↑ Retry works as configured
+}</code></pre>
+                    </div>
+                    <div class="mt-4 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                        <p class="text-emerald-400 text-sm font-semibold">What happens:</p>
+                        <p class="text-slate-500 text-xs mt-1">Attempt 1 fails → waits 2s → Attempt 2 → waits 2s → Attempt 3 → then Error Workflow fires</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 info-box p-6 rounded-r-2xl">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-amber-500 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h4 class="text-amber-400 font-bold mb-1">Verification Rule</h4>
+                        <p class="text-slate-300 text-sm leading-relaxed">Never assume a Retry + On Error combination works as configured. <strong class="text-white">Deliberately test it</strong> by pointing the node at something that fails predictably (a dead URL, a wrong port) and counting the actual attempts in the execution log.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 03: Stop And Error -->
+    <section id="section3" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 03</div>
+            <h2 class="text-4xl font-bold mb-4">Stop And Error — Deliberate Failure</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">Force a workflow to fail on your own terms, with your own message, at the exact point you've verified something is wrong — rather than letting a downstream node fail confusingly three steps later.</p>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass-card p-6">
+                    <div class="flex items-center gap-2 mb-4"><i data-lucide="message-square" class="w-5 h-5 text-blue-500"></i><h3 class="font-bold">Error Message</h3></div>
+                    <p class="text-sm text-slate-400 mb-4">Throw a simple custom text message. Useful for human-readable alerts.</p>
+                    <div class="code-block">
+                        <pre><code class="language-text">"Order rejected — missing order_id
+ or invalid amount: {{ $json.order_id }}"</code></pre>
+                    </div>
+                </div>
+                <div class="glass-card p-6">
+                    <div class="flex items-center gap-2 mb-4"><i data-lucide="file-json" class="w-5 h-5 text-purple-500"></i><h3 class="font-bold">Error Object</h3></div>
+                    <p class="text-sm text-slate-400 mb-4">Throw a full JSON object. Useful when your Error Workflow needs to branch logic based on structured data.</p>
+                    <div class="code-block">
+                        <pre><code class="language-json">{
+  "type": "validation_failed",
+  "field": "order_id",
+  "reason": "missing",
+  "severity": "critical"
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 warning-box p-6 rounded-r-2xl">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="lock" class="w-5 h-5 text-red-500 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h4 class="text-red-400 font-bold mb-1">Hard Constraint</h4>
+                        <p class="text-slate-300 text-sm">Stop And Error can only be used as the <strong class="text-white">LAST node</strong> in a workflow (or branch). It doesn't make sense to connect anything after it — by definition, it terminates that execution path with a failure.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 glass-card p-8">
+                <h4 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="git-branch" class="w-5 h-5 text-amber-500"></i> Example: Validation Gate Before Database Write</h4>
+                <div class="grid md:grid-cols-3 gap-4 items-center">
+                    <div class="text-center p-4 bg-slate-800/50 rounded-xl">
+                        <div class="text-sm font-semibold mb-1">Set Node</div>
+                        <div class="text-xs text-slate-500">Shape order data</div>
+                    </div>
+                    <div class="flex justify-center"><i data-lucide="arrow-right" class="w-5 h-5 text-slate-600"></i></div>
+                    <div class="text-center p-4 bg-slate-800/50 rounded-xl">
+                        <div class="text-sm font-semibold mb-1">IF Node</div>
+                        <div class="text-xs text-slate-500">order_id exists AND amount > 0?</div>
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4 mt-4">
+                    <div class="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10 text-center">
+                        <div class="text-xs text-emerald-400 font-semibold mb-1">TRUE → Postgres Insert</div>
+                        <div class="text-xs text-slate-500">Data is valid, proceed to write</div>
+                    </div>
+                    <div class="p-4 bg-red-500/5 rounded-xl border border-red-500/10 text-center">
+                        <div class="text-xs text-red-400 font-semibold mb-1">FALSE → Stop And Error</div>
+                        <div class="text-xs text-slate-500">Fail immediately with clear message</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 04: Error Workflow Architecture -->
+    <section id="section4" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 04</div>
+            <h2 class="text-4xl font-bold mb-4">Error Trigger + Error Workflow</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">n8n's workflow-level safety net. A separate workflow that fires automatically when any monitored workflow fails.</p>
+
+            <div class="glass-card p-8 md:p-12">
+                <div class="grid md:grid-cols-2 gap-8 items-center mb-10">
+                    <div>
+                        <h3 class="text-xl font-bold mb-4">Setup Steps</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-sm flex-shrink-0">1</div>
+                                <p class="text-sm text-slate-400">Create a <strong class="text-white">new, separate workflow</strong>. Add the <code class="bg-slate-800 px-1 rounded">Error Trigger</code> node as its first node.</p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-sm flex-shrink-0">2</div>
+                                <p class="text-sm text-slate-400">Save it — name it clearly: <code class="bg-slate-800 px-1 rounded">Error Handler — Order Pipeline</code></p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-sm flex-shrink-0">3</div>
+                                <p class="text-sm text-slate-400">In the monitored workflow: <strong class="text-white">Options (⋮) → Settings → Error Workflow</strong> → select your handler.</p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-sm flex-shrink-0">4</div>
+                                <p class="text-sm text-slate-400">Save the monitored workflow.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header"><span class="text-xs text-slate-400">error-workflow-diagram</span></div>
+                        <pre><code class="language-text">┌─────────────────────────────┐
+│   MAIN WORKFLOW (monitored)  │
+│                              │
+│  [Trigger] → [Node fails]    │
+│       │                      │
+│       ▼                      │
+│  On Error = "Stop Workflow"  │
+│       │                      │
+│       ▼                      │
+│  Error Workflow configured?  │
+│       │YES                   │
+│       ▼                      │
+└───────┼──────────────────────┘
+        │
+        ▼
+┌─────────────────────────────┐
+│   ERROR WORKFLOW (separate) │
+│                              │
+│  [Error Trigger]             │
+│       │                      │
+│       ▼                      │
+│  [Set: format message]       │
+│       │                      │
+│       ▼                      │
+│  [Slack / Email / PagerDuty] │
+└─────────────────────────────┘</code></pre>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="p-4 bg-blue-500/5 rounded-xl border border-blue-500/10">
+                        <h4 class="text-blue-400 font-semibold text-sm mb-2 flex items-center gap-2"><i data-lucide="info" class="w-4 h-4"></i> No Activation Needed</h4>
+                        <p class="text-xs text-slate-400">You do not need to toggle the Error Workflow "Active." Unlike Schedule or Webhook workflows, a workflow whose first node is Error Trigger doesn't need normal activation — n8n invokes it directly and internally when the monitored workflow fails.</p>
+                    </div>
+                    <div class="p-4 bg-purple-500/5 rounded-xl border border-purple-500/10">
+                        <h4 class="text-purple-400 font-semibold text-sm mb-2 flex items-center gap-2"><i data-lucide="git-branch" class="w-4 h-4"></i> Self-Reference Default</h4>
+                        <p class="text-xs text-slate-400">If a workflow itself contains an Error Trigger node, it defaults to using itself as its own Error Workflow unless you point it elsewhere.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 05: Payload Structure -->
+    <section id="section5" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 05</div>
+            <h2 class="text-4xl font-bold mb-4">The Exact Payload Structure</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">The Error Trigger receives a specific JSON payload. Its shape changes depending on where the failure happened.</p>
+
+            <div class="code-block mb-8">
+                <div class="code-header"><div class="code-dot dot-red"></div><div class="code-dot dot-yellow"></div><div class="code-dot dot-green"></div><span class="text-xs text-slate-400 ml-2">error-trigger-payload.json</span></div>
+                <pre><code class="language-json">[
+  {
+    "execution": {
+      "id": "231",
+      "url": "https://your-instance.app.n8n.cloud/execution/231",
+      "retryOf": "34",
+      "error": {
+        "message": "duplicate key value violates unique constraint \"customers_email_key\"",
+        "stack": "..."
+      },
+      "lastNodeExecuted": "Upsert Customer",
+      "mode": "trigger"
+    },
+    "workflow": {
+      "id": "17",
+      "name": "Customer Sync Pipeline"
+    }
+  }
+]</code></pre>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="glass-card p-6">
+                    <h4 class="font-bold text-blue-400 mb-2">execution.id & execution.url</h4>
+                    <p class="text-sm text-slate-400">Only exist if the execution was saved to the database. <strong class="text-white">Absent entirely</strong> if the failure happened in the trigger node itself — the workflow never truly executed.</p>
+                </div>
+                <div class="glass-card p-6">
+                    <h4 class="font-bold text-purple-400 mb-2">execution.retryOf</h4>
+                    <p class="text-sm text-slate-400">Appears only when this run is a retry of a previously failed execution. This is your signal that <strong class="text-white">"this is a repeat attempt"</strong> — critical for idempotency logic.</p>
+                </div>
+                <div class="glass-card p-6">
+                    <h4 class="font-bold text-amber-400 mb-2">Trigger vs Mid-Workflow</h4>
+                    <p class="text-sm text-slate-400">If failure originates in the trigger node, the payload shape changes — less detail under <code class="bg-slate-800 px-1 rounded">execution{}</code>, more under a <code class="bg-slate-800 px-1 rounded">trigger{}</code> object instead.</p>
+                </div>
+            </div>
+
+            <div class="mt-8 glass-card p-6">
+                <h4 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="message-circle" class="w-5 h-5 text-emerald-500"></i> Building the Notification Message</h4>
+                <div class="code-block">
+                    <pre><code class="language-text">🔴 Workflow Failed: {{ $json.workflow.name }}
+Node: {{ $json.execution.lastNodeExecuted }}
+Error: {{ $json.execution.error.message }}
+Execution: {{ $json.execution.url }}
+Retry of previous failure: {{ $json.execution.retryOf ? 'Yes' : 'No' }}</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 06: Testing Gotcha -->
+    <section id="section6" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 06 — Critical</div>
+            <h2 class="text-4xl font-bold mb-4">The Testing-Discipline Gotcha</h2>
+            <p class="text-slate-400 mb-8 max-w-2xl">Confirmed directly in the docs: manually clicking "Execute Workflow" will never trigger your Error Workflow. Easy to lose an afternoon to if you don't know it up front.</p>
+
+            <div class="warning-box p-8 rounded-r-2xl mb-8">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-red-500 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h3 class="text-red-400 font-bold text-lg mb-2">The Error Trigger only fires for automatic executions</h3>
+                        <p class="text-slate-300 leading-relaxed text-sm">Webhook, schedule, polling — these trigger the Error Workflow. <strong class="text-white">Manually clicking "Execute Workflow"</strong> in the editor, even on a workflow that fails, will <strong class="text-white">never</strong> trigger the configured Error Workflow. If you're testing your error-handling setup by manually running the monitored workflow and wondering why no Slack message arrives — <span class="text-amber-400">nothing is broken</span>.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass-card p-6 border-t-2 border-red-500">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-red">WRONG WAY</span></div>
+                    <ul class="text-sm text-slate-400 space-y-2">
+                        <li>• Open workflow in editor</li>
+                        <li>• Click "Execute Workflow"</li>
+                        <li>• Node fails</li>
+                        <li>• <strong class="text-red-400">No Slack message arrives</strong></li>
+                        <li>• Spend 2 hours debugging</li>
+                    </ul>
+                </div>
+                <div class="glass-card p-6 border-t-2 border-emerald-500">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-green">RIGHT WAY</span></div>
+                    <ul class="text-sm text-slate-400 space-y-2">
+                        <li>• Fire the <strong class="text-white">actual webhook</strong> (curl, Postman)</li>
+                        <li>• Or wait for the <strong class="text-white">actual schedule</strong></li>
+                        <li>• Or temporarily lower schedule interval</li>
+                        <li>• Node fails</li>
+                        <li>• <strong class="text-emerald-400">Slack message arrives instantly</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 07: Idempotency -->
+    <section id="section7" class="relative z-10 py-20 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="section-badge">Section 07</div>
+            <h2 class="text-4xl font-bold mb-4">Idempotency — Safe to Run Twice</h2>
+            <p class="text-slate-400 mb-12 max-w-2xl">The core question every production write operation must answer: if this exact execution ran a second time, would anything bad happen?</p>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass-card p-6 border-t-2 border-red-500">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-red">NOT IDEMPOTENT</span></div>
+                    <div class="code-block mb-4">
+                        <pre><code class="language-sql">-- Postgres "Insert" with NO unique constraint
+INSERT INTO orders (order_id, amount)
+VALUES ('ORD-001', 299.99);</code></pre>
+                    </div>
+                    <ul class="text-sm text-slate-400 space-y-2">
+                        <li>• Webhook retries due to network blip</li>
+                        <li>• Same order inserted <strong class="text-red-400">TWICE</strong></li>
+                        <li>• Customer charged twice</li>
+                        <li>• Inventory decremented twice</li>
+                    </ul>
+                    <div class="mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/10 text-xs text-red-400">Dangerous: Duplicate delivery = double effect</div>
+                </div>
+
+                <div class="glass-card p-6 border-t-2 border-emerald-500">
+                    <div class="flex items-center gap-2 mb-4"><span class="pill pill-green">IDEMPOTENT</span></div>
+                    <div class="code-block mb-4">
+                        <pre><code class="language-sql">-- UNIQUE constraint on order_id
+-- + Skip on Conflict OR Upsert
+INSERT INTO orders (order_id, amount)
+VALUES ('ORD-001', 299.99)
+ON CONFLICT (order_id) DO NOTHING;</code></pre>
+                    </div>
+                    <ul class="text-sm text-slate-400 space-y-2">
+                        <li>• Webhook retries due to network blip</li>
+                        <li>• Duplicate delivery either <strong class="text-emerald-400">does nothing</strong></li>
+                        <li>• Or safely overwrites with identical data</li>
+                        <li>• <strong class="text-white">No double effect</strong></li>
+                    </ul>
+                    <div class="mt-4 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/10 text-xs text-emerald-400">Safe: Duplicate delivery = no harm</div>
+                </div>
+            </div>
+
+            <div class="mt-8 success-box p-6 rounded-r-2xl">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="shield-check" class="w-6 h-6 text-emerald-500 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h4 class="text-emerald-400 font-bold mb-1">The Rule</h4>
+                        <p class="text-slate-300 text-sm leading-relaxed">Every node that writes to an external system — database, CRM, payment gateway, email send — should be evaluated with the question: <strong class="text-white">"is it safe for n8n to run this exact step twice?"</strong> If the answer is no, that's a design defect to fix before the workflow goes anywhere near production traffic.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 info-box p-6 rounded-r-2xl">
+                <div class="flex items-start gap-4">
+                    <i data-lucide="refresh-cw" class="w-6 h-6 text-blue-400 mt-1 flex-shrink-0"></i>
+                    <div>
+                        <h4 class="text-blue-400 font-bold mb-1">execution.retryOf</h4>
+                        <p class="text-slate-300 text-sm leading-relaxed">The <code class="bg-slate-800 px-1 rounded">execution.retryOf</code> field exists precisely because retries are not a rare edge case — they're something n8n assumes <strong class="text-white">will happen</strong> and gives you the data to detect. Use it in your Error Workflow to distinguish first failures from retries.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 08: Quiz -->
+    <section id="section8" class="relative z-10 py-20 px-4">
+        <div class="max-w-3xl mx-auto">
+            <div class="section-badge">Section 08 — Quiz</div>
+            <h2 class="text-4xl font-bold mb-4">Test Your Understanding</h2>
+            <p class="text-slate-400 mb-8">Three quick questions testing deep comprehension of error handling architecture.</p>
+
+            <div class="space-y-6" id="quiz-container">
+                <div class="glass-card p-6 quiz-item" data-answer="b">
+                    <h4 class="font-bold mb-4 text-sm">1. You configure "Retry On Fail: 3 tries" but set On Error to "Continue (using error output)." What happens?</h4>
+                    <div class="space-y-3">
+                        <div class="quiz-option" onclick="selectOption(this, 'a', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">All 3 retries execute, then failed items route to error output</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'b', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Attempt 1 fails, immediately routes to error output — retries 2 & 3 never happen</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'c', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">The workflow stops with an error saying the settings are incompatible</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'd', 1)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">n8n automatically changes On Error to "Stop Workflow" to allow retries</span></div>
+                    </div>
+                    <div class="quiz-feedback mt-4 hidden text-sm"></div>
+                </div>
+
+                <div class="glass-card p-6 quiz-item" data-answer="c">
+                    <h4 class="font-bold mb-4 text-sm">2. You want to test that your Error Workflow sends a Slack alert. What's the correct way?</h4>
+                    <div class="space-y-3">
+                        <div class="quiz-option" onclick="selectOption(this, 'a', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Click "Execute Workflow" in the editor and watch for the Slack message</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'b', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Toggle the Error Workflow to "Active" and then click Execute</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'c', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Fire the actual webhook or wait for the actual schedule — manual execution never triggers Error Workflows</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'd', 2)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Add an Error Trigger node to the main workflow itself</span></div>
+                    </div>
+                    <div class="quiz-feedback mt-4 hidden text-sm"></div>
+                </div>
+
+                <div class="glass-card p-6 quiz-item" data-answer="b">
+                    <h4 class="font-bold mb-4 text-sm">3. A payment webhook fires twice due to a network retry. Which design prevents double-charging?</h4>
+                    <div class="space-y-3">
+                        <div class="quiz-option" onclick="selectOption(this, 'a', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Use "Continue" on the Insert node so the second webhook is ignored</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'b', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Add a UNIQUE constraint on order_id + use Skip on Conflict or Upsert</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'c', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Set "Retry On Fail" to 0 so the webhook handler never retries</span></div>
+                        <div class="quiz-option" onclick="selectOption(this, 'd', 3)"><div class="w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center option-indicator"></div><span class="text-sm">Use a Stop And Error node before the payment node to block duplicates</span></div>
+                    </div>
+                    <div class="quiz-feedback mt-4 hidden text-sm"></div>
+                </div>
+            </div>
+
+            <div id="quiz-result" class="mt-8 text-center hidden">
+                <div class="text-5xl font-bold text-emerald-400 mb-2" id="score-display">0/3</div>
+                <p class="text-slate-400" id="score-message">Keep studying!</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="relative z-10 py-12 px-4 border-t border-slate-800">
+        <div class="max-w-6xl mx-auto text-center">
+            <p class="text-slate-600 text-sm">n8n Production Error Handling — Day 7 — Building Resilient Workflows</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        function scrollToSection(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+        const sections = ['hero','section1','section2','section3','section4','section5','section6','section7','section8'];
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(s => { const el = document.getElementById(s); if(el){ const r = el.getBoundingClientRect(); if(r.top <= window.innerHeight/2) current = s; }});
+            document.querySelectorAll('.nav-dot').forEach((d,i) => d.classList.toggle('active', sections[i] === current));
+        });
+
+        const quizAnswers = {};
+        function selectOption(el, val, qNum) {
+            const item = el.closest('.quiz-item');
+            const correct = item.dataset.answer;
+            const opts = item.querySelectorAll('.quiz-option');
+            const fb = item.querySelector('.quiz-feedback');
+            if(quizAnswers[qNum]) return;
+            quizAnswers[qNum] = val;
+            opts.forEach(o => { o.style.pointerEvents = 'none'; });
+            if(val === correct) {
+                el.classList.add('correct');
+                el.querySelector('.option-indicator').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                el.querySelector('.option-indicator').classList.add('border-emerald-500');
+                fb.textContent = '✓ Correct!'; fb.classList.remove('hidden','text-red-400'); fb.classList.add('text-emerald-400');
+            } else {
+                el.classList.add('wrong');
+                el.querySelector('.option-indicator').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-red-500"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                el.querySelector('.option-indicator').classList.add('border-red-500');
+                opts.forEach(o => { if(o.onclick.toString().includes("'"+correct+"'")) { o.classList.add('correct'); const ind = o.querySelector('.option-indicator'); ind.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><polyline points="20 6 9 17 4 12"></polyline></svg>'; ind.classList.add('border-emerald-500'); }});
+                fb.textContent = '✗ Wrong. Correct answer highlighted.'; fb.classList.remove('hidden','text-emerald-400'); fb.classList.add('text-red-400');
+            }
+            checkAll();
+        }
+        function checkAll() {
+            if(Object.keys(quizAnswers).length === 3) {
+                const correct = Object.values(quizAnswers).filter((v,i) => v === ['b','c','b'][i]).length;
+                document.getElementById('quiz-result').classList.remove('hidden');
+                document.getElementById('quiz-result').classList.add('animate-in');
+                document.getElementById('score-display').textContent = correct + '/3';
+                document.getElementById('score-message').textContent = correct === 3 ? 'Perfect! You fully understood the lecture.' : correct === 2 ? 'Good! One more to perfect.' : 'Keep studying the material!';
+            }
+        }
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if(e.isIntersecting){ e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; } });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.glass-card').forEach(el => { el.style.opacity='0'; el.style.transform='translateY(20px)'; el.style.transition='opacity 0.6s ease-out, transform 0.6s ease-out'; observer.observe(el); });
+    </script>
+</body>
+</html>
