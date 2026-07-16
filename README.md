@@ -38,6 +38,7 @@ n8n-engineering-guide/
 | 04 | Data Manipulation & Transformation | ✅ Ready | 
 | 05 | HTTP Requests & APIs | ✅ Ready |
 | 06 | Databases & Storage | ✅ Ready |
+| 07 | Production Error Handling | ✅ Ready |
 
 ## 🎨 Design System
 
