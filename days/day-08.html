@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day 8 — Batch Processing & Data Merging | n8n Engineering Guide</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #0a0a0f; color: #e2e8f0; }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+  .gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #134e4a 50%, #0a0a0f 100%); }
+  .gradient-teal { background: linear-gradient(135deg, #14b8a6 0%, #0d9488 50%, #115e59 100%); }
+  .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); }
+  .glass-card { background: rgba(255,255,255,0.02); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.05); transition: all 0.3s ease; }
+  .glass-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(20,184,166,0.3); transform: translateY(-2px); }
+  .section-num { background: linear-gradient(135deg, #14b8a6, #0d9488); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+  .code-block { background: #0d1117; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
+  .nav-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.15); transition: all 0.3s; cursor: pointer; }
+  .nav-dot.active { background: #14b8a6; box-shadow: 0 0 12px rgba(20,184,166,0.5); }
+  .quiz-option { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); transition: all 0.2s; cursor: pointer; }
+  .quiz-option:hover { border-color: rgba(20,184,166,0.4); background: rgba(20,184,166,0.05); }
+  .quiz-option.selected-correct { border-color: #10b981; background: rgba(16,185,129,0.1); }
+  .quiz-option.selected-wrong { border-color: #ef4444; background: rgba(239,68,68,0.1); }
+  .critical-box { background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(185,28,28,0.04)); border: 1px solid rgba(239,68,68,0.3); }
+  .timeline-dot { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #14b8a6, #0d9488); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0; }
+  .glow-teal { box-shadow: 0 0 40px rgba(20,184,166,0.15); }
+  .stat-card { background: rgba(20,184,166,0.05); border: 1px solid rgba(20,184,166,0.15); }
+  .join-badge-inner { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+  .join-badge-anti { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+  .join-badge-full { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+  .join-badge-left { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #0a0a0f; }
+  ::-webkit-scrollbar-thumb { background: #134e4a; border-radius: 4px; }
+  .fade-in { animation: fadeIn 0.6s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Navigation Dots -->
+<div class="fixed right-6 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-3 hidden lg:flex">
+  <div class="nav-dot active" onclick="scrollToSection('hero')" title="Hero"></div>
+  <div class="nav-dot" onclick="scrollToSection('s1')" title="Section 1"></div>
+  <div class="nav-dot" onclick="scrollToSection('s2')" title="Section 2"></div>
+  <div class="nav-dot" onclick="scrollToSection('s3')" title="Section 3"></div>
+  <div class="nav-dot" onclick="scrollToSection('s4')" title="Section 4"></div>
+  <div class="nav-dot" onclick="scrollToSection('s5')" title="Section 5"></div>
+  <div class="nav-dot" onclick="scrollToSection('s6')" title="Section 6"></div>
+  <div class="nav-dot" onclick="scrollToSection('s7')" title="Section 7"></div>
+  <div class="nav-dot" onclick="scrollToSection('quiz')" title="Quiz"></div>
+</div>
+
+<!-- Hero -->
+<section id="hero" class="gradient-hero relative overflow-hidden min-h-[60vh] flex items-center">
+  <div class="absolute inset-0 opacity-20">
+    <div class="absolute top-20 left-20 w-72 h-72 bg-teal-500 rounded-full blur-[120px]"></div>
+    <div class="absolute bottom-20 right-20 w-96 h-96 bg-cyan-600 rounded-full blur-[140px]"></div>
+  </div>
+  <div class="container mx-auto px-6 py-20 relative z-10">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="px-3 py-1 rounded-full text-xs font-bold bg-teal-500/10 text-teal-400 border border-teal-500/20">DAY 08</span>
+      <span class="px-3 py-1 rounded-full text-xs font-bold bg-white/5 text-slate-400 border border-white/10">WEEK 2</span>
+    </div>
+    <h1 class="text-4xl md:text-6xl font-extrabold mb-4 leading-tight">
+      Batch Processing &<br>
+      <span class="bg-gradient-to-r from-teal-400 via-cyan-400 to-teal-500 bg-clip-text text-transparent">Data Merging</span>
+    </h1>
+    <p class="text-lg text-slate-400 max-w-2xl mb-8">Loop Over Items and the Merge Node — mastering controlled iteration and multi-source data reconciliation.</p>
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-4xl">
+      <div class="stat-card rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-teal-400">3</div>
+        <div class="text-xs text-slate-400 mt-1">Use Cases</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-teal-400">1</div>
+        <div class="text-xs text-slate-400 mt-1">Reset Mechanic</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-teal-400">4</div>
+        <div class="text-xs text-slate-400 mt-1">Merge Modes</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-teal-400">5</div>
+        <div class="text-xs text-slate-400 mt-1">Output Types</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-teal-400">∞</div>
+        <div class="text-xs text-slate-400 mt-1">Loop Risks</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Main Content -->
+<main class="container mx-auto px-6 py-16 max-w-5xl space-y-20">
+
+<!-- Section 01 -->
+<section id="s1" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">01</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">The Core Misconception</h2>
+      <p class="text-slate-400">Why you usually don't need Loop Over Items</p>
+    </div>
+  </div>
+  <div class="glass rounded-2xl p-8 glow-teal">
+    <p class="text-slate-300 leading-relaxed mb-6">
+      Every lesson since Day 1 has relied on one fact: <strong class="text-teal-400">every n8n node automatically processes the full items array it receives, one item at a time, without you writing any loop.</strong> A Set node with 500 incoming items transforms all 500. A Postgres Insert node with 1,000 incoming items inserts all 1,000. This is n8n's default behavior — implicit looping — and it's true regardless of whether Loop Over Items is anywhere in your workflow.
+    </p>
+    <div class="critical-box rounded-xl p-6 mb-6">
+      <div class="flex items-center gap-3 mb-3">
+        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <h3 class="text-lg font-bold text-red-400">The Single Most Common Beginner Mistake</h3>
+      </div>
+      <p class="text-slate-300">Reaching for Loop Over Items purely out of a traditional-programming reflex ("I need to process a list, so I need a for-loop"), when the workflow would have worked identically without it. This is confirmed directly in n8n's own documentation.</p>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="glass-card rounded-xl p-6 border-l-4 border-red-500">
+        <h4 class="font-bold text-red-400 mb-2">❌ Wrong</h4>
+        <p class="text-sm text-slate-400">Adding Loop Over Items to "process every item" when a single Set node would handle all 500 items natively.</p>
+      </div>
+      <div class="glass-card rounded-xl p-6 border-l-4 border-teal-500">
+        <h4 class="font-bold text-teal-400 mb-2">✅ Correct</h4>
+        <p class="text-sm text-slate-400">Use implicit per-item processing by default. Reach for Loop Over Items only for its three real use cases.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 02 -->
+<section id="s2" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">02</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">The Three Genuine Reasons</h2>
+      <p class="text-slate-400">When Loop Over Items is actually required</p>
+    </div>
+  </div>
+  <div class="space-y-6">
+    <!-- Reason 1 -->
+    <div class="glass-card rounded-2xl p-8">
+      <div class="flex items-start gap-4">
+        <div class="timeline-dot">1</div>
+        <div class="flex-1">
+          <h3 class="text-xl font-bold text-teal-400 mb-2">Node Exceptions</h3>
+          <p class="text-slate-300 mb-4">A small number of nodes are documented to only process the <strong>first item</strong> they receive, ignoring the rest of the array entirely. The RSS Feed Read node is n8n's own cited example. If you need that kind of node to run once per item, you must feed it one item at a time via Loop Over Items.</p>
+        </div>
+      </div>
+    </div>
+    <!-- Reason 2 -->
+    <div class="glass-card rounded-2xl p-8">
+      <div class="flex items-start gap-4">
+        <div class="timeline-dot">2</div>
+        <div class="flex-1">
+          <h3 class="text-xl font-bold text-teal-400 mb-2">Rate-Limit Control</h3>
+          <p class="text-slate-300 mb-4">Batching 500 API calls into groups of 10, with a pause between each group, keeps you under a documented rate limit. This connects directly back to Day 4's 429 handling.</p>
+          <div class="critical-box rounded-xl p-4">
+            <p class="text-red-400 font-bold text-sm mb-1">⚠️ CRITICAL GOTCHA</p>
+            <p class="text-slate-300 text-sm">The loop <strong>alone does nothing</strong> to protect you — without a Wait node placed between the API call and the loop-back connection, the batches fire as fast as the engine can process them, and you'll hit the same rate limit you were trying to avoid. The loop controls <em>grouping</em>; the Wait node controls <em>pacing</em>. You need both.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Reason 3 -->
+    <div class="glass-card rounded-2xl p-8">
+      <div class="flex items-start gap-4">
+        <div class="timeline-dot">3</div>
+        <div class="flex-1">
+          <h3 class="text-xl font-bold text-teal-400 mb-2">Dynamic / Manual Pagination</h3>
+          <p class="text-slate-300 mb-4">The mechanism referenced back in Day 4 as an alternative to the built-in Pagination toggle. Today closes that gap. See Section 03 for the full Reset mechanism explanation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 03 -->
+<section id="s3" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">03</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">The Reset Mechanism</h2>
+      <p class="text-slate-400">How manual pagination actually works</p>
+    </div>
+  </div>
+  <div class="glass rounded-2xl p-8 glow-teal">
+    <p class="text-slate-300 leading-relaxed mb-6">
+      By default, Loop Over Items keeps working through its original input list, batch by batch, until that list is exhausted — it doesn't care what flows back into it afterward. <strong class="text-teal-400">Reset mode changes this fundamentally:</strong> when Reset is turned on, every time data loops back into the node, the node treats that new incoming data as a completely fresh list to iterate — not a continuation of the original one.
+    </p>
+
+    <div class="code-block mb-6">
+      <div class="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
+        <span class="text-xs text-slate-400 font-mono">Manual Pagination Loop Architecture</span>
+        <span class="text-xs text-teal-400">n8n workflow logic</span>
+      </div>
+      <pre class="p-4 overflow-x-auto text-sm font-mono"><code class="language-javascript">// Conceptual flow of a Reset-mode pagination loop:
+
+[Loop Over Items: Reset ON]
+        │
+        ▼
+[HTTP Request: fetch current page]
+        │
+        ▼
+[IF: does response indicate more pages exist?]
+        │true                              │false
+        ▼                                   ▼
+[Set: build "next page" request data]   [continue to rest
+        │                                 of workflow]
+        └──── loops back to ─────────────────┐
+                                              │
+              [Loop Over Items: Reset ON] ◄───┘
+              (treats the "next page" data as
+               its new current-iteration input —
+               NOT the original first-page data)</code></pre>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-6">
+      <div class="glass-card rounded-xl p-6">
+        <h4 class="font-bold text-cyan-400 mb-2">Day 4 — Built-in Pagination</h4>
+        <p class="text-sm text-slate-400">Handles fetch→check→repeat cycle <strong>internally</strong> within a single HTTP Request node, using <code class="text-teal-400">response</code> and <code class="text-teal-400">pageCount</code> automatically. Clean, compact, but limited to offset/cursor/Link header strategies.</p>
+      </div>
+      <div class="glass-card rounded-xl p-6 border border-teal-500/30">
+        <h4 class="font-bold text-teal-400 mb-2">Day 8 — Manual Loop + Reset</h4>
+        <p class="text-sm text-slate-400">The <strong>hand-built version</strong> of the same idea — more verbose, but necessary when an API's pagination shape doesn't fit any of Day 4's three built-in strategies. You control every step.</p>
+      </div>
+    </div>
+
+    <div class="critical-box rounded-xl p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <h3 class="text-lg font-bold text-red-400">Mandatory Safety Rule</h3>
+      </div>
+      <p class="text-slate-300">Every loop like this must have a <strong>valid termination condition</strong>. If the "does more data exist" check can never evaluate false, the execution runs forever, consuming a worker indefinitely — this is the same resource-exhaustion risk from Day 4's timeout discussion, self-inflicted this time rather than caused by an unresponsive external API.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Section 04 -->
+<section id="s4" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">04</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">Production Debugging Pitfall</h2>
+      <p class="text-slate-400">IF node inside a loop causing inflated item count</p>
+    </div>
+  </div>
+  <div class="glass rounded-2xl p-8">
+    <p class="text-slate-300 leading-relaxed mb-6">
+      A specific, documented gotcha: if you place an IF node inside a loop, and <strong class="text-teal-400">both the true and false branches reconnect back into the loop separately</strong>, your item count can inflate beyond the actual number of records — each branch contributes its own count back to the loop rather than the two branches being treated as one unified continuation.
+    </p>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="glass-card rounded-xl p-6 border-l-4 border-red-500">
+        <h4 class="font-bold text-red-400 mb-2">🔴 Symptom</h4>
+        <p class="text-sm text-slate-400">Loop Over Items execution processing what looks like <strong>more items than you started with</strong>. The execution count keeps growing mysteriously.</p>
+      </div>
+      <div class="glass-card rounded-xl p-6 border-l-4 border-teal-500">
+        <h4 class="font-bold text-teal-400 mb-2">🟢 Fix</h4>
+        <p class="text-sm text-slate-400">Check the branching-reconnection pattern first. Ensure both IF branches don't independently feed back into the loop. Merge them before reconnecting, or use a single continuation path.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 05 -->
+<section id="s5" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">05</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">The Merge Node — Modes</h2>
+      <p class="text-slate-400">Nothing recombines automatically in n8n</p>
+    </div>
+  </div>
+  <div class="space-y-6">
+    <div class="glass rounded-2xl p-6">
+      <p class="text-slate-300 mb-6">The Merge node takes two (or more) separate branches and combines them into one stream. If a workflow splits into parallel branches, they stay separate all the way to the end unless you explicitly merge them. <span class="text-teal-400">(Useful to know: n8n also lets you find this node by searching "Join" — the same node, a more SQL-familiar alias.)</span></p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <!-- Append -->
+      <div class="glass-card rounded-xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold text-sm">A</span>
+          <h3 class="text-lg font-bold text-teal-400">APPEND</h3>
+        </div>
+        <div class="code-block mb-3">
+          <pre class="p-3 text-xs font-mono"><code class="language-javascript">Input 1: [A, B, C]
+Input 2: [D, E, F]
+Output:  [A, B, C, D, E, F]</code></pre>
+        </div>
+        <p class="text-sm text-slate-400">No matching, no pairing — just concatenation. Use when two independent sets should be processed together downstream (e.g., active users + inactive users).</p>
+      </div>
+
+      <!-- Combine Position -->
+      <div class="glass-card rounded-xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm">P</span>
+          <h3 class="text-lg font-bold text-cyan-400">COMBINE › Position</h3>
+        </div>
+        <div class="code-block mb-3">
+          <pre class="p-3 text-xs font-mono"><code class="language-javascript">Input 1: [A, B, C]
+Input 2: [X, Y, Z]
+Output:  [A+X, B+Y, C+Z]</code></pre>
+        </div>
+        <p class="text-sm text-slate-400">Paired by index/order only. Use <strong>only</strong> when both inputs are guaranteed to be in the same order and the same length — fragile if not.</p>
+      </div>
+
+      <!-- Combine Matching -->
+      <div class="glass-card rounded-xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-sm">M</span>
+          <h3 class="text-lg font-bold text-purple-400">COMBINE › Matching Fields</h3>
+        </div>
+        <div class="code-block mb-3">
+          <pre class="p-3 text-xs font-mono"><code class="language-javascript">Input 1: [{id:1,...}, {id:2,...}]
+Input 2: [{id:1,...}, {id:2,...}]
+Match: id ↔ id
+// SQL-join equivalent — pairs by shared key</code></pre>
+        </div>
+        <p class="text-sm text-slate-400">Pairs records by a shared key regardless of order or list length. This is the SQL-join equivalent.</p>
+      </div>
+
+      <!-- SQL Query -->
+      <div class="glass-card rounded-xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">S</span>
+          <h3 class="text-lg font-bold text-amber-400">SQL QUERY</h3>
+          <span class="text-xs text-slate-500 bg-white/5 px-2 py-0.5 rounded">v1.49.0+</span>
+        </div>
+        <p class="text-sm text-slate-400 mb-3">Write an actual SQL-style query across the input streams for complex joins beyond the simpler modes above.</p>
+        <div class="code-block">
+          <pre class="p-3 text-xs font-mono"><code class="language-sql">SELECT * FROM input1
+LEFT JOIN input2 ON input1.id = input2.id</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Choose Branch -->
+    <div class="glass-card rounded-xl p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="w-8 h-8 rounded-lg bg-slate-500/20 text-slate-400 flex items-center justify-center font-bold text-sm">C</span>
+        <h3 class="text-lg font-bold text-slate-300">CHOOSE BRANCH</h3>
+      </div>
+      <p class="text-slate-400">Passes through exactly one of the inputs — useful when you need to conditionally select one data source over another rather than truly combining them.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Section 06 -->
+<section id="s6" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">06</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">Combine › Matching Fields</h2>
+      <p class="text-slate-400">The Four Output Types — your SQL-join mental model</p>
+    </div>
+  </div>
+  <div class="space-y-6">
+    <div class="grid md:grid-cols-2 gap-6">
+      <!-- Keep Matches -->
+      <div class="glass-card rounded-xl p-6 border-t-4 border-emerald-500">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-bold text-emerald-400">KEEP MATCHES</h3>
+          <span class="join-badge-inner text-xs px-2 py-1 rounded-full font-bold">INNER JOIN</span>
+        </div>
+        <p class="text-slate-400 text-sm">Only records present in <strong>BOTH</strong> inputs survive. Unmatched records from either side are dropped entirely.</p>
+      </div>
+
+      <!-- Keep Non-Matches -->
+      <div class="glass-card rounded-xl p-6 border-t-4 border-amber-500">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-bold text-amber-400">KEEP NON-MATCHES</h3>
+          <span class="join-badge-anti text-xs px-2 py-1 rounded-full font-bold">ANTI-JOIN</span>
+        </div>
+        <p class="text-slate-400 text-sm">Only records that <strong>DON'T</strong> have a match survive. Useful for "find customers with no billing record."</p>
+      </div>
+
+      <!-- Keep Everything -->
+      <div class="glass-card rounded-xl p-6 border-t-4 border-blue-500">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-bold text-blue-400">KEEP EVERYTHING</h3>
+          <span class="join-badge-full text-xs px-2 py-1 rounded-full font-bold">FULL OUTER JOIN</span>
+        </div>
+        <p class="text-slate-400 text-sm">Matched records are merged together; unmatched records from <strong>BOTH</strong> sides are also kept, just without the other side's fields filled in.</p>
+      </div>
+
+      <!-- Enrich Input 1 -->
+      <div class="glass-card rounded-xl p-6 border-t-4 border-purple-500">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-bold text-purple-400">ENRICH INPUT 1</h3>
+          <span class="join-badge-left text-xs px-2 py-1 rounded-full font-bold">LEFT JOIN</span>
+        </div>
+        <p class="text-slate-400 text-sm">Every record from Input 1 survives, matched or not. Where a match exists in Input 2, its fields are added. Where no match exists, Input 1's record passes through unchanged. This is the correct choice whenever Input 1 is your "source of truth" list that must never shrink.</p>
+      </div>
+    </div>
+
+    <div class="glass rounded-2xl p-8">
+      <h3 class="text-lg font-bold text-teal-400 mb-4">Operational Details</h3>
+      <div class="space-y-4">
+        <div class="flex items-start gap-3">
+          <span class="text-teal-400 font-mono text-sm mt-0.5">01</span>
+          <p class="text-slate-300 text-sm">If you need to match on a <strong>nested field</strong>, the Input 1 Field / Input 2 Field boxes require <strong>dot-notation typed as literal text</strong> — not wrapped in <code class="text-teal-400">{{ }}</code> expression syntax.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-teal-400 font-mono text-sm mt-0.5">02</span>
+          <p class="text-slate-300 text-sm"><strong class="text-teal-400">Architecturally important:</strong> The Merge node always waits for every connected input to have data before it executes at all. If one branch feeding it is a slow API call and the other is a fast Set node, the fast branch's output sits idle until the slow branch finishes — the Merge node, and everything after it, only ever runs as fast as the slowest parallel path feeding it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 07 -->
+<section id="s7" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">07</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold text-red-400">Rate-Limit Loop Gotcha</h2>
+      <p class="text-slate-400">Loop without Wait = still hits 429</p>
+    </div>
+  </div>
+  <div class="critical-box rounded-2xl p-8">
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <h3 class="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          SILENTLY BROKEN
+        </h3>
+        <div class="code-block mb-4">
+          <pre class="p-4 text-xs font-mono"><code class="language-javascript">// Loop Over Items (batch: 10)
+    │
+    ▼
+[HTTP Request: API Call]
+    │
+    └──── loops back ─────┐
+                          │
+              [Loop Over Items] ◄───┘
+
+// NO Wait node = batches fire at full speed
+// Result: 429 Rate Limit errors still occur</code></pre>
+        </div>
+        <ul class="text-sm text-slate-400 space-y-2">
+          <li>❌ Loop controls grouping only</li>
+          <li>❌ No pacing between batches</li>
+          <li>❌ API still overwhelmed</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-teal-400 mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          CORRECT
+        </h3>
+        <div class="code-block mb-4">
+          <pre class="p-4 text-xs font-mono"><code class="language-javascript">// Loop Over Items (batch: 10)
+    │
+    ▼
+[HTTP Request: API Call]
+    │
+    ▼
+[Wait: 60 seconds]
+    │
+    └──── loops back ─────┐
+                          │
+              [Loop Over Items] ◄───┘
+
+// Wait node enforces 60s pause between batches
+// Result: stays under 10 req/min limit</code></pre>
+        </div>
+        <ul class="text-sm text-slate-400 space-y-2">
+          <li>✅ Loop controls grouping</li>
+          <li>✅ Wait controls pacing</li>
+          <li>✅ Rate limit respected</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 08: Quiz -->
+<section id="quiz" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">08</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">Knowledge Check</h2>
+      <p class="text-slate-400">3 questions — test your understanding</p>
+    </div>
+  </div>
+  <div class="glass rounded-2xl p-8 glow-teal">
+    <div id="quiz-container" class="space-y-8">
+      <!-- Q1 -->
+      <div class="quiz-question" data-q="1">
+        <h3 class="text-lg font-bold mb-4"><span class="text-teal-400">Q1.</span> You have a Set node receiving 500 items. You want to transform a field on every item. What is the correct approach?</h3>
+        <div class="space-y-3">
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 1)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">A</span>
+              <span>Add a Loop Over Items node before the Set node to process items one by one</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="true" onclick="selectOption(this, 1)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">B</span>
+              <span>Connect the 500 items directly to the Set node — it handles all items natively via implicit looping</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 1)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">C</span>
+              <span>Use a Code node with a manual for-loop to iterate over the items array</span>
+            </div>
+          </div>
+        </div>
+        <div class="quiz-feedback mt-3 hidden text-sm"></div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="quiz-question" data-q="2">
+        <h3 class="text-lg font-bold mb-4"><span class="text-teal-400">Q2.</span> You need to enrich a list of 1,000 CRM customers with billing status from a second system, matched by customer_id. The CRM list must remain complete even if some customers have no billing record. Which Merge output type is correct?</h3>
+        <div class="space-y-3">
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 2)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">A</span>
+              <span>Keep Matches (INNER JOIN) — only customers present in both systems survive</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 2)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">B</span>
+              <span>Keep Non-Matches (ANTI-JOIN) — only customers with NO billing record survive</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="true" onclick="selectOption(this, 2)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">C</span>
+              <span>Enrich Input 1 (LEFT JOIN) — every CRM customer survives, billing fields added where matched</span>
+            </div>
+          </div>
+        </div>
+        <div class="quiz-feedback mt-3 hidden text-sm"></div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="quiz-question" data-q="3">
+        <h3 class="text-lg font-bold mb-4"><span class="text-teal-400">Q3.</span> In a Loop Over Items + Reset mode pagination loop, what happens to the data that loops back into the node?</h3>
+        <div class="space-y-3">
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 3)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">A</span>
+              <span>It is appended to the original input list and processed as a continuation</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="true" onclick="selectOption(this, 3)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">B</span>
+              <span>It is treated as a completely fresh list to iterate — the original list is forgotten</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 3)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">C</span>
+              <span>It is ignored entirely — the loop only ever processes the first page of data</span>
+            </div>
+          </div>
+        </div>
+        <div class="quiz-feedback mt-3 hidden text-sm"></div>
+      </div>
+    </div>
+
+    <div class="mt-8 pt-6 border-t border-white/10">
+      <div class="flex items-center justify-between">
+        <button onclick="checkQuiz()" class="px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-bold rounded-xl hover:opacity-90 transition">Check Answers</button>
+        <div id="quiz-score" class="text-2xl font-bold text-slate-500">— / 3</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="text-center py-12 text-slate-500 text-sm">
+  <p>n8n Engineering Guide — Day 8 · Batch Processing & Data Merging</p>
+  <p class="mt-2">Week 2 begins · Built for production-grade automation</p>
+</footer>
+
+</main>
+
+<script>
+function scrollToSection(id) {
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+}
+
+// Intersection Observer for nav dots
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.nav-dot').forEach(d => d.classList.remove('active'));
+      const dot = document.querySelector(`.nav-dot[onclick="scrollToSection('${entry.target.id}')"]`);
+      if (dot) dot.classList.add('active');
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+
+// Quiz
+const answers = {};
+function selectOption(el, qNum) {
+  const question = el.closest('.quiz-question');
+  question.querySelectorAll('.quiz-option').forEach(opt => {
+    opt.classList.remove('selected-correct', 'selected-wrong');
+  });
+  answers[qNum] = el.dataset.correct === 'true';
+  el.classList.add('selected-correct');
+}
+
+function checkQuiz() {
+  let correct = 0;
+  let total = 3;
+  for (let i = 1; i <= total; i++) {
+    const question = document.querySelector(`.quiz-question[data-q="${i}"]`);
+    const selected = question.querySelector('.selected-correct');
+    const feedback = question.querySelector('.quiz-feedback');
+    feedback.classList.remove('hidden');
+    if (selected && answers[i]) {
+      correct++;
+      feedback.innerHTML = '<span class="text-emerald-400 font-bold">✓ Correct!</span>';
+    } else if (selected) {
+      selected.classList.remove('selected-correct');
+      selected.classList.add('selected-wrong');
+      const correctOpt = question.querySelector('[data-correct="true"]');
+      correctOpt.classList.add('selected-correct');
+      feedback.innerHTML = '<span class="text-red-400 font-bold">✗ Incorrect.</span> The correct answer is highlighted above.';
+    } else {
+      feedback.innerHTML = '<span class="text-amber-400 font-bold">⚠ No answer selected.</span>';
+    }
+  }
+  document.getElementById('quiz-score').textContent = correct + ' / ' + total;
+  document.getElementById('quiz-score').className = 'text-2xl font-bold ' + (correct === total ? 'text-emerald-400' : correct >= 2 ? 'text-amber-400' : 'text-red-400');
+}
+</script>
+</body>
+</html>
