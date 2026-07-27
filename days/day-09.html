@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day 9 — Sub-Workflows & Modular Architecture | n8n Engineering Guide</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #0a0a0f; color: #e2e8f0; }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+  .gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #312e81 50%, #0a0a0f 100%); }
+  .gradient-indigo { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #3730a3 100%); }
+  .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); }
+  .glass-card { background: rgba(255,255,255,0.02); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.05); transition: all 0.3s ease; }
+  .glass-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(99,102,241,0.3); transform: translateY(-2px); }
+  .section-num { background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+  .code-block { background: #0d1117; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
+  .nav-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.15); transition: all 0.3s; cursor: pointer; }
+  .nav-dot.active { background: #6366f1; box-shadow: 0 0 12px rgba(99,102,241,0.5); }
+  .quiz-option { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); transition: all 0.2s; cursor: pointer; }
+  .quiz-option:hover { border-color: rgba(99,102,241,0.4); background: rgba(99,102,241,0.05); }
+  .quiz-option.selected-correct { border-color: #10b981; background: rgba(16,185,129,0.1); }
+  .quiz-option.selected-wrong { border-color: #ef4444; background: rgba(239,68,68,0.1); }
+  .critical-box { background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(185,28,28,0.04)); border: 1px solid rgba(239,68,68,0.3); }
+  .warning-box { background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(180,83,9,0.04)); border: 1px solid rgba(245,158,11,0.3); }
+  .timeline-dot { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0; }
+  .glow-indigo { box-shadow: 0 0 40px rgba(99,102,241,0.15); }
+  .stat-card { background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.15); }
+  .contract-badge { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #0a0a0f; }
+  ::-webkit-scrollbar-thumb { background: #312e81; border-radius: 4px; }
+  .fade-in { animation: fadeIn 0.6s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Navigation Dots -->
+<div class="fixed right-6 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-3 hidden lg:flex">
+  <div class="nav-dot active" onclick="scrollToSection('hero')" title="Hero"></div>
+  <div class="nav-dot" onclick="scrollToSection('s1')" title="Section 1"></div>
+  <div class="nav-dot" onclick="scrollToSection('s2')" title="Section 2"></div>
+  <div class="nav-dot" onclick="scrollToSection('s3')" title="Section 3"></div>
+  <div class="nav-dot" onclick="scrollToSection('s4')" title="Section 4"></div>
+  <div class="nav-dot" onclick="scrollToSection('s5')" title="Section 5"></div>
+  <div class="nav-dot" onclick="scrollToSection('s6')" title="Section 6"></div>
+  <div class="nav-dot" onclick="scrollToSection('quiz')" title="Quiz"></div>
+</div>
+
+<!-- Hero -->
+<section id="hero" class="gradient-hero relative overflow-hidden min-h-[60vh] flex items-center">
+  <div class="absolute inset-0 opacity-20">
+    <div class="absolute top-20 left-20 w-72 h-72 bg-indigo-500 rounded-full blur-[120px]"></div>
+    <div class="absolute bottom-20 right-20 w-96 h-96 bg-violet-600 rounded-full blur-[140px]"></div>
+  </div>
+  <div class="container mx-auto px-6 py-20 relative z-10">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">DAY 09</span>
+      <span class="px-3 py-1 rounded-full text-xs font-bold bg-white/5 text-slate-400 border border-white/10">WEEK 2</span>
+    </div>
+    <h1 class="text-4xl md:text-6xl font-extrabold mb-4 leading-tight">
+      Sub-Workflows &<br>
+      <span class="bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-500 bg-clip-text text-transparent">Modular Architecture</span>
+    </h1>
+    <p class="text-lg text-slate-400 max-w-2xl mb-8">Execute Sub-workflow Node and Reusable Design Patterns — build once, verify once, reuse everywhere.</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl">
+      <div class="stat-card rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-400">2</div>
+        <div class="text-xs text-slate-400 mt-1">Node Types</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-400">3</div>
+        <div class="text-xs text-slate-400 mt-1">Input Modes</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-400">3</div>
+        <div class="text-xs text-slate-400 mt-1">Use Reasons</div>
+      </div>
+      <div class="stat-card rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-400">1</div>
+        <div class="text-xs text-slate-400 mt-1">Merge Constraint</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Main Content -->
+<main class="container mx-auto px-6 py-16 max-w-5xl space-y-20">
+
+<!-- Section 01 -->
+<section id="s1" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">01</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">The Two-Node Architecture</h2>
+      <p class="text-slate-400">Parent workflow calls child workflow — the exact data contract</p>
+    </div>
+  </div>
+  <div class="glass rounded-2xl p-8 glow-indigo">
+    <p class="text-slate-300 leading-relaxed mb-6">
+      Sub-workflows are built from two complementary nodes: <strong class="text-indigo-400">Execute Sub-workflow</strong> (in the parent) and <strong class="text-indigo-400">Execute Sub-workflow Trigger</strong> (in the child). The parent calls the child; the child runs its logic; the child's last node output returns to the parent. Nothing more, nothing less.
+    </p>
+
+    <div class="code-block mb-6">
+      <div class="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
+        <span class="text-xs text-slate-400 font-mono">Parent ↔ Child Data Contract</span>
+        <span class="text-xs text-indigo-400">n8n architecture</span>
+      </div>
+      <pre class="p-4 overflow-x-auto text-sm font-mono"><code class="language-javascript">PARENT WORKFLOW                          CHILD (SUB-)WORKFLOW
+
+[[some node]]                            [Execute Sub-workflow Trigger]
+      │                                   (label: "When executed by another workflow")
+      ▼
+[Execute Sub-workflow] ───calls───►        receives parent's input data
+      │                                              │
+      │                                              ▼
+      │                                   [... sub-workflow logic runs ...]
+      │                                              │
+      │                                              ▼
+      │                                   [Last node of sub-workflow]
+      │                                              │
+      ◄──── this node's output IS what ──────────────┘
+             the last node produced —
+             the "return statement"</code></pre>
+    </div>
+
+    <div class="critical-box rounded-xl p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <h3 class="text-lg font-bold text-red-400">The Exact Contract</h3>
+      </div>
+      <p class="text-slate-300">The Execute Sub-workflow node passes its input data to the child's Execute Sub-workflow Trigger. <strong>Whatever the child's last node outputs is exactly what returns to the parent.</strong> If you want the parent to receive specific fields, make sure the last node in the child produces exactly that shape — a Set node with "Keep Only Specified Fields" is the natural choice.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Section 02 -->
+<section id="s2" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">02</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">Designing the Input Contract</h2>
+      <p class="text-slate-400">Three modes — one professional default</p>
+    </div>
+  </div>
+  <div class="space-y-6">
+
+    <!-- Accept All Data -->
+    <div class="glass-card rounded-2xl p-8 border-l-4 border-slate-500">
+      <div class="flex items-start gap-4">
+        <span class="w-10 h-10 rounded-lg bg-slate-500/20 text-slate-400 flex items-center justify-center font-bold text-sm flex-shrink-0">1</span>
+        <div class="flex-1">
+          <h3 class="text-lg font-bold text-slate-300 mb-2">ACCEPT ALL DATA</h3>
+          <p class="text-slate-400 text-sm mb-3">Whatever the parent sends passes through unchanged — no schema, no validation. Fast to set up, but the sub-workflow gives no signal about what it actually expects.</p>
+          <div class="code-block">
+            <pre class="p-3 text-xs font-mono"><code class="language-javascript">// No contract — parent sends anything, child receives everything
+// Risk: silent failures when expected fields are missing</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Define Using Fields -->
+    <div class="glass-card rounded-2xl p-8 border-l-4 border-indigo-500">
+      <div class="flex items-start gap-4">
+        <span class="w-10 h-10 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-sm flex-shrink-0">2</span>
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-2">
+            <h3 class="text-lg font-bold text-indigo-400">DEFINE USING FIELDS BELOW</h3>
+            <span class="contract-badge text-xs px-2 py-0.5 rounded-full font-bold">PROFESSIONAL DEFAULT</span>
+          </div>
+          <p class="text-slate-400 text-sm mb-3">You name each expected input field explicitly, with a type (string / number / boolean / JSON) and mark it required or optional. This is a genuine contract — anyone opening this sub-workflow six months from now can read exactly what it needs without reverse-engineering the logic.</p>
+          <div class="code-block">
+            <pre class="p-3 text-xs font-mono"><code class="language-javascript">// Explicit, self-documenting contract
+channel: string (required)
+message: string (required)
+priority: string (optional)
+metadata: JSON (optional)</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Define Using JSON Example -->
+    <div class="glass-card rounded-2xl p-8 border-l-4 border-violet-500">
+      <div class="flex items-start gap-4">
+        <span class="w-10 h-10 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold text-sm flex-shrink-0">3</span>
+        <div class="flex-1">
+          <h3 class="text-lg font-bold text-violet-400 mb-2">DEFINE USING JSON EXAMPLE</h3>
+          <p class="text-slate-400 text-sm mb-3">You provide one sample JSON object showing the expected shape, and n8n infers the contract from it — faster to write than listing fields individually, at some cost to the explicit self-documentation of the fields approach.</p>
+          <div class="code-block">
+            <pre class="p-3 text-xs font-mono"><code class="language-json">{
+  "channel": "slack",
+  "message": "Server alert",
+  "priority": "high"
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="warning-box rounded-xl p-6">
+      <p class="text-amber-400 font-bold text-sm mb-1">⚠️ The Difference</p>
+      <p class="text-slate-300 text-sm">"Define using fields below" is the difference between a function with a clear signature and one that just accepts <code class="text-indigo-400">*args, **kwargs</code> and hopes for the best. For anything you intend to reuse across multiple client workflows — which is the entire point of sub-workflows — this is the professional default.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Section 03 -->
+<section id="s3" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">03</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">Three Legitimate Reasons</h2>
+      <p class="text-slate-400">When and why to build a sub-workflow</p>
+    </div>
+  </div>
+  <div class="space-y-6">
+    <!-- Reason 1 -->
+    <div class="glass-card rounded-2xl p-8">
+      <div class="flex items-start gap-4">
+        <div class="timeline-dot">1</div>
+        <div class="flex-1">
+          <h3 class="text-xl font-bold text-indigo-400 mb-2">Genuine Reusability</h3>
+          <p class="text-slate-300 mb-3">The same logic, called from multiple unrelated parent workflows. The "Send Formatted Alert" sub-workflow is the clearest case — one alerting standard across every client's Error Workflow.</p>
+          <div class="code-block">
+            <pre class="p-3 text-xs font-mono"><code class="language-javascript">// One sub-workflow: "Send Formatted Alert"
+// Called from: Client A Error Workflow
+// Called from: Client B Error Workflow
+// Called from: Client C Scheduled Report
+// Fix formatting once → fixed everywhere</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Reason 2 -->
+    <div class="glass-card rounded-2xl p-8">
+      <div class="flex items-start gap-4">
+        <div class="timeline-dot">2</div>
+        <div class="flex-1">
+          <h3 class="text-xl font-bold text-indigo-400 mb-2">Retry-Isolation</h3>
+          <p class="text-slate-300 mb-3">You already used this in Day 6 and Day 7 without naming it. Isolate a flaky external call in its own workflow with <strong>On Error: Stop Workflow</strong> so <strong>Retry On Fail</strong> actually engages. The parent is set to <strong>Continue (using error output)</strong> — giving one small piece of logic a different failure-handling scope than the rest of the pipeline.</p>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="code-block">
+              <div class="px-3 py-1 bg-white/5 border-b border-white/10 text-xs text-slate-400">Child (Isolated)</div>
+              <pre class="p-3 text-xs font-mono"><code class="language-javascript">On Error: Stop Workflow
+Retry On Fail: 3 attempts
+// Flaky API call isolated here</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="px-3 py-1 bg-white/5 border-b border-white/10 text-xs text-slate-400">Parent (Resilient)</div>
+              <pre class="p-3 text-xs font-mono"><code class="language-javascript">On Error: Continue (Error Output)
+// Parent never stops —
+// handles child failure gracefully</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Reason 3 -->
+    <div class="glass-card rounded-2xl p-8">
+      <div class="flex items-start gap-4">
+        <div class="timeline-dot">3</div>
+        <div class="flex-1">
+          <h3 class="text-xl font-bold text-indigo-400 mb-2">Memory & Scale</h3>
+          <p class="text-slate-300">Confirmed directly in n8n's own docs: for a workflow that's grown large enough to process genuinely large datasets in one canvas, splitting logical sections into sub-workflows is documented to help with memory pressure specifically — this isn't only an organizational nicety, it's an actual performance consideration for heavy workloads.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 04 -->
+<section id="s4" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">04</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold text-red-400">Convert to Sub-workflow</h2>
+      <p class="text-slate-400">The Merge node constraint — callback to Day 8</p>
+    </div>
+  </div>
+  <div class="critical-box rounded-2xl p-8">
+    <p class="text-slate-300 leading-relaxed mb-6">
+      n8n has a convenient shortcut: select a contiguous run of nodes, right-click → <strong>Convert to sub-workflow</strong>, and n8n automatically extracts them into a new workflow, builds the trigger with inferred input parameters, and replaces the section with an Execute Sub-workflow node.
+    </p>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-6">
+      <div class="glass rounded-xl p-6 border border-red-500/30">
+        <h4 class="font-bold text-red-400 mb-2 flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          CANNOT CONVERT
+        </h4>
+        <p class="text-sm text-slate-400 mb-3">A selection that starts at a <strong>Merge node</strong> cannot be converted to a sub-workflow.</p>
+        <div class="code-block">
+          <pre class="p-3 text-xs font-mono"><code class="language-javascript">// Branch A ──┐
+//             ├──► [Merge] ──► [Node X] ──► [Node Y]
+// Branch B ──┘
+//                    ^
+//                    └─ can't start extraction here
+// Merge has 2+ incoming connections
+// Sub-workflow needs exactly 1 entry point</code></pre>
+        </div>
+      </div>
+      <div class="glass rounded-xl p-6 border border-indigo-500/30">
+        <h4 class="font-bold text-indigo-400 mb-2 flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          SOLUTION
+        </h4>
+        <p class="text-sm text-slate-400 mb-3">Either include both branches feeding the Merge inside the selection, or restructure so the extraction point sits <strong>after</strong> the Merge has already resolved to one stream.</p>
+        <div class="code-block">
+          <pre class="p-3 text-xs font-mono"><code class="language-javascript">// Branch A ──┐
+//             ├──► [Merge] ──► [Node X] ──► [Node Y]
+// Branch B ──┘                    ^
+//                                   └─ extract from here
+// Single stream after Merge = valid entry point</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-slate-400 text-sm">This makes complete sense once you know why: a Merge node's entire job (from Day 8) is combining two or more separate incoming branches — by definition it has more than one incoming connection. A sub-workflow's input, by contrast, is a single, well-defined data contract.</p>
+  </div>
+</section>
+
+<!-- Section 05 -->
+<section id="s5" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">05</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold text-red-400">Credentials</h2>
+      <p class="text-slate-400">Reference locally — never pass as data</p>
+    </div>
+  </div>
+  <div class="critical-box rounded-2xl p-8">
+    <div class="flex items-center gap-3 mb-4">
+      <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      <h3 class="text-lg font-bold text-red-400">The Golden Rule</h3>
+    </div>
+    <p class="text-slate-300 leading-relaxed mb-6">
+      Following the same principle from Day 4 (credentials are encrypted references, never exposed in workflow JSON): if a sub-workflow needs to call an authenticated API, that credential should be configured <strong class="text-indigo-400">directly inside the sub-workflow's own HTTP/database node</strong> — not decrypted and handed to it as a data field from the parent.
+    </p>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="glass rounded-xl p-6 border-l-4 border-red-500">
+        <h4 class="font-bold text-red-400 mb-2">❌ WRONG — Pass as Data</h4>
+        <ul class="text-sm text-slate-400 space-y-2">
+          <li>• Secret appears in execution logs</li>
+          <li>• Visible in data passed between nodes</li>
+          <li>• Potentially leaked in error payloads to Error Workflow</li>
+          <li>• Defeats the entire credential encryption system</li>
+        </ul>
+      </div>
+      <div class="glass rounded-xl p-6 border-l-4 border-indigo-500">
+        <h4 class="font-bold text-indigo-400 mb-2">✅ CORRECT — Reference Locally</h4>
+        <ul class="text-sm text-slate-400 space-y-2">
+          <li>• Credential lives only inside sub-workflow</li>
+          <li>• Parent never sees or handles the secret</li>
+          <li>• Encrypted reference, never exposed in data</li>
+          <li>• Same security model as Day 4's HTTP Request node</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 06 -->
+<section id="s6" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">06</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">Practical Business Fact</h2>
+      <p class="text-slate-400">How sub-workflow executions are counted</p>
+    </div>
+  </div>
+  <div class="glass rounded-2xl p-8 glow-indigo">
+    <p class="text-slate-300 leading-relaxed mb-6">
+      Confirmed directly in n8n's documentation: <strong class="text-indigo-400">sub-workflow executions don't count toward your plan's monthly execution or active-workflow limits</strong> the way a normal top-level triggered execution does.
+    </p>
+    <div class="grid md:grid-cols-3 gap-4 mb-6">
+      <div class="glass-card rounded-xl p-5 text-center">
+        <div class="text-3xl font-bold text-indigo-400 mb-1">$</div>
+        <div class="text-sm text-slate-400">Cost-Efficient Architecture</div>
+      </div>
+      <div class="glass-card rounded-xl p-5 text-center">
+        <div class="text-3xl font-bold text-indigo-400 mb-1">∞</div>
+        <div class="text-sm text-slate-400">Heavy Reuse Encouraged</div>
+      </div>
+      <div class="glass-card rounded-xl p-5 text-center">
+        <div class="text-3xl font-bold text-indigo-400 mb-1">📋</div>
+        <div class="text-sm text-slate-400">Verify Current Plan Terms</div>
+      </div>
+    </div>
+    <div class="warning-box rounded-xl p-5">
+      <p class="text-amber-400 font-bold text-sm mb-1">⚠️ Worth Verifying</p>
+      <p class="text-slate-300 text-sm">This has real, direct relevance to how you'd architect and price a client's automation portfolio. Heavy reuse of shared sub-workflows isn't just good engineering — it can also be the more cost-efficient structure on a metered plan. <strong>Always verify the exact current terms</strong> on whichever plan a given client is on, since pricing/limit details change over time.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Section 07: Quiz -->
+<section id="quiz" class="fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <span class="section-num text-5xl">07</span>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold">Knowledge Check</h2>
+      <p class="text-slate-400">3 questions — test your understanding</p>
+    </div>
+  </div>
+  <div class="glass rounded-2xl p-8 glow-indigo">
+    <div id="quiz-container" class="space-y-8">
+
+      <!-- Q1 -->
+      <div class="quiz-question" data-q="1">
+        <h3 class="text-lg font-bold mb-4"><span class="text-indigo-400">Q1.</span> A parent workflow calls a sub-workflow. What specific piece of the child's execution returns to the parent?</h3>
+        <div class="space-y-3">
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 1)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">A</span>
+              <span>Everything the sub-workflow produced across all its nodes, merged together</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="true" onclick="selectOption(this, 1)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">B</span>
+              <span>Only the output of the sub-workflow's last node — its "return statement"</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 1)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">C</span>
+              <span>The input data that was originally passed from the parent, unchanged</span>
+            </div>
+          </div>
+        </div>
+        <div class="quiz-feedback mt-3 hidden text-sm"></div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="quiz-question" data-q="2">
+        <h3 class="text-lg font-bold mb-4"><span class="text-indigo-400">Q2.</span> You're building a "Send Alert" sub-workflow to reuse across 5 client projects. Which input contract mode is the professional default?</h3>
+        <div class="space-y-3">
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 2)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">A</span>
+              <span>Accept All Data — fastest to set up, no schema needed</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 2)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">B</span>
+              <span>Define Using JSON Example — one sample object, n8n infers the rest</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="true" onclick="selectOption(this, 2)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">C</span>
+              <span>Define Using Fields Below — explicit typed contract with required/optional flags</span>
+            </div>
+          </div>
+        </div>
+        <div class="quiz-feedback mt-3 hidden text-sm"></div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="quiz-question" data-q="3">
+        <h3 class="text-lg font-bold mb-4"><span class="text-indigo-400">Q3.</span> Why can't a node selection starting at a Merge node be converted to a sub-workflow?</h3>
+        <div class="space-y-3">
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 3)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">A</span>
+              <span>Merge nodes are too complex — n8n simply doesn't support converting them</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="true" onclick="selectOption(this, 3)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">B</span>
+              <span>A Merge node has multiple incoming connections by definition, but a sub-workflow needs exactly one entry point</span>
+            </div>
+          </div>
+          <div class="quiz-option rounded-lg p-4" data-correct="false" onclick="selectOption(this, 3)">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs">C</span>
+              <span>Merge nodes require credentials, and sub-workflows can't access parent credentials</span>
+            </div>
+          </div>
+        </div>
+        <div class="quiz-feedback mt-3 hidden text-sm"></div>
+      </div>
+    </div>
+
+    <div class="mt-8 pt-6 border-t border-white/10">
+      <div class="flex items-center justify-between">
+        <button onclick="checkQuiz()" class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-bold rounded-xl hover:opacity-90 transition">Check Answers</button>
+        <div id="quiz-score" class="text-2xl font-bold text-slate-500">— / 3</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="text-center py-12 text-slate-500 text-sm">
+  <p>n8n Engineering Guide — Day 9 · Sub-Workflows & Modular Architecture</p>
+  <p class="mt-2">Week 2 continues · Built for production-grade automation</p>
+</footer>
+
+</main>
+
+<script>
+function scrollToSection(id) {
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+}
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.nav-dot').forEach(d => d.classList.remove('active'));
+      const dot = document.querySelector(`.nav-dot[onclick="scrollToSection('${entry.target.id}')"]`);
+      if (dot) dot.classList.add('active');
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+
+const answers = {};
+function selectOption(el, qNum) {
+  const question = el.closest('.quiz-question');
+  question.querySelectorAll('.quiz-option').forEach(opt => {
+    opt.classList.remove('selected-correct', 'selected-wrong');
+  });
+  answers[qNum] = el.dataset.correct === 'true';
+  el.classList.add('selected-correct');
+}
+
+function checkQuiz() {
+  let correct = 0;
+  let total = 3;
+  for (let i = 1; i <= total; i++) {
+    const question = document.querySelector(`.quiz-question[data-q="${i}"]`);
+    const selected = question.querySelector('.selected-correct');
+    const feedback = question.querySelector('.quiz-feedback');
+    feedback.classList.remove('hidden');
+    if (selected && answers[i]) {
+      correct++;
+      feedback.innerHTML = '<span class="text-emerald-400 font-bold">✓ Correct!</span>';
+    } else if (selected) {
+      selected.classList.remove('selected-correct');
+      selected.classList.add('selected-wrong');
+      const correctOpt = question.querySelector('[data-correct="true"]');
+      correctOpt.classList.add('selected-correct');
+      feedback.innerHTML = '<span class="text-red-400 font-bold">✗ Incorrect.</span> The correct answer is highlighted above.';
+    } else {
+      feedback.innerHTML = '<span class="text-amber-400 font-bold">⚠ No answer selected.</span>';
+    }
+  }
+  document.getElementById('quiz-score').textContent = correct + ' / ' + total;
+  document.getElementById('quiz-score').className = 'text-2xl font-bold ' + (correct === total ? 'text-emerald-400' : correct >= 2 ? 'text-amber-400' : 'text-red-400');
+}
+</script>
+</body>
+</html>
